@@ -54,6 +54,26 @@ def durations(paths: list[Path]) -> dict[Path, float | None]:
     return result
 
 
+def same_content(a: Path, b: Path, probe: int = 4096, slack: int = 65536) -> bool:
+    """True when two files hold the same video data.
+
+    Copies of a title on different discs differ by a few header bytes, which shifts the data, so
+    blocks from several points in `a` are looked for near the same position in `b`.
+    """
+    size_a, size_b = a.stat().st_size, b.stat().st_size
+    margin = abs(size_a - size_b) + slack
+    with a.open("rb") as fa, b.open("rb") as fb:
+        for fraction in (0.2, 0.4, 0.6, 0.8):
+            offset = int(size_a * fraction)
+            fa.seek(offset)
+            block = fa.read(probe)
+            start = max(0, offset - margin)
+            fb.seek(start)
+            if block not in fb.read(offset - start + probe + margin):
+                return False
+    return True
+
+
 def show_and_season_from_folder(folder: Path) -> tuple[str | None, int | None]:
     """Guess the show and season from a Plex-style path like 'Show (1998)/Season 03 (2000)'."""
     season = None
@@ -61,3 +81,9 @@ def show_and_season_from_folder(folder: Path) -> tuple[str | None, int | None]:
         season = int(m.group(1))
     show = re.sub(r"\s*\(\d{4}\)\s*$", "", folder.parent.name).strip() or None
     return show, season
+
+
+def show_year_from_folder(folder: Path) -> int | None:
+    """The year in the show folder's name, e.g. 1998 for 'Sex and the City (1998)/Season 03'."""
+    m = re.search(r"\((\d{4})\)\s*$", folder.parent.name)
+    return int(m.group(1)) if m else None

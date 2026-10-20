@@ -82,13 +82,79 @@ class RenameEpisodesTests(SeasonTestCase):
         self.assertIn("WARNING 1 episode file(s) for 3 missing", out)
         self.assertIn("Episodes with no file: s02e02, s02e03", out)
 
-    def test_too_many_episode_files(self):
-        lengths = {f"rip{i}.mkv": EPISODE for i in range(4)}
+    def test_episode_files_beyond_the_guide_become_bonus_extras(self):
+        lengths = {f"rip{i}.mkv": EPISODE for i in range(5)}
         for name in lengths:
             self.make(name)
-        with self.assertRaises(SystemExit):
-            self.rename("--apply", lengths=lengths)
-        self.assertEqual(self.names(), sorted(lengths))
+        out = self.rename("--apply", lengths=lengths)
+        self.assertIn("the last 2 become bonus extras", out)
+        self.assertEqual(self.names(), sorted([
+            "Test Show - s02e01 - Pilot [2002-01-01].mkv",
+            "Test Show - s02e02 - Part - Two [2002-01-08].mkv",
+            "Test Show - s02e03 - Three....mkv",
+            "Test Show - Season 2 Bonus 01 - Other.mkv",
+            "Test Show - Season 2 Bonus 02 - Other.mkv",
+        ]))
+
+    def test_bonus_option_takes_a_file_out_of_the_episodes(self):
+        lengths = {f"rip{i}.mkv": EPISODE for i in range(5)}
+        for name in lengths:
+            self.make(name)
+        self.rename("--bonus", "rip1.mkv", "--bonus", "RIP3.mkv", "--apply", lengths=lengths)
+        self.assertEqual(self.names(), sorted([
+            "Test Show - s02e01 - Pilot [2002-01-01].mkv",
+            "Test Show - Season 2 Bonus 01 - Other.mkv",
+            "Test Show - s02e02 - Part - Two [2002-01-08].mkv",
+            "Test Show - Season 2 Bonus 02 - Other.mkv",
+            "Test Show - s02e03 - Three....mkv",
+        ]))
+        self.assertTrue((self.season / "Test Show - Season 2 Bonus 01 - Other.mkv").exists())
+
+    def test_unknown_bonus_file_is_an_error(self):
+        self.make("rip0.mkv")
+        with self.assertRaises(SystemExit), mock.patch("sys.stderr", io.StringIO()):
+            self.rename("--bonus", "nope.mkv", lengths={"rip0.mkv": EPISODE})
+
+    def test_trailers_first_names_the_first_clips_after_episodes(self):
+        lengths = {f"rip{i}.mkv": EPISODE for i in range(3)}
+        lengths.update({f"rip{i}.mkv": CLIP for i in range(3, 8)})
+        for name in lengths:
+            self.make(name)
+        self.rename("--trailers-first", "--apply", lengths=lengths)
+        self.assertEqual(self.names(), sorted([
+            "Test Show - s02e01 - Pilot [2002-01-01].mkv",
+            "Test Show - s02e02 - Part - Two [2002-01-08].mkv",
+            "Test Show - s02e03 - Three....mkv",
+            "Test Show - Pilot - Trailer.mkv",
+            "Test Show - Part - Two - Trailer.mkv",
+            "Test Show - Three... - Trailer.mkv",
+            "Test Show - Season 2 Extra 01 - Other.mkv",
+            "Test Show - Season 2 Extra 02 - Other.mkv",
+        ]))
+
+    def test_rerun_renames_clips_numbered_earlier(self):
+        names = [f"Test Show - Season 2 Extra {i:02d} - Trailer.mkv" for i in range(1, 5)]
+        for name in names:
+            self.make(name)
+        self.make("Test Show - Bloopers - Featurette.mkv")
+        self.rename("--trailers-first", "--apply", lengths=dict.fromkeys(names, CLIP))
+        self.assertEqual(self.names(), sorted([
+            "Test Show - Pilot - Trailer.mkv",
+            "Test Show - Part - Two - Trailer.mkv",
+            "Test Show - Three... - Trailer.mkv",
+            "Test Show - Season 2 Extra 01 - Other.mkv",
+            "Test Show - Bloopers - Featurette.mkv",
+        ]))
+
+    def test_rerun_leaves_finished_names_alone(self):
+        lengths = {f"rip{i}.mkv": CLIP for i in range(5)}
+        for name in lengths:
+            self.make(name)
+        self.rename("--trailers-first", "--apply", lengths=lengths)
+        before = self.names()
+        out = self.rename("--apply", lengths=dict.fromkeys(before, CLIP))
+        self.assertEqual(self.names(), before)
+        self.assertIn("Renamed 0 file(s)", out)
 
     def test_clips_numbered_when_count_differs(self):
         lengths = {"a.mkv": CLIP, "b.mkv": CLIP}
@@ -154,6 +220,23 @@ class RenameEpisodesTests(SeasonTestCase):
         folder.mkdir()
         with self.assertRaises(SystemExit):
             self.run_main(rename_episodes, str(folder), "--guide", str(self.guide))
+
+    def test_downloads_guide_when_none_given(self):
+        self.make("rip.mkv")
+        saved = self.tmp / "saved.json"
+        with mock.patch.object(rename_episodes, "fetch_guide", return_value=("Test Show (2001)", GUIDE)) as fetch:
+            out = self.run_main(rename_episodes, str(self.season), "--save-guide", str(saved), "--apply",
+                                lengths={"rip.mkv": EPISODE})
+        fetch.assert_called_once_with("Test Show", 2, 2001)
+        self.assertIn("TVmaze, Test Show (2001) season 2", out)
+        self.assertEqual(self.names(), ["Test Show - s02e01 - Pilot [2002-01-01].mkv"])
+        self.assertEqual(json.loads(saved.read_text(encoding="utf-8")), GUIDE)
+
+    def test_download_failure_is_a_clear_error(self):
+        with mock.patch.object(rename_episodes, "fetch_guide", side_effect=OSError("offline")),                 mock.patch("sys.stderr", io.StringIO()) as err:
+            with self.assertRaises(SystemExit):
+                self.run_main(rename_episodes, str(self.season))
+        self.assertIn("could not download the episode guide: offline", err.getvalue())
 
 
 if __name__ == "__main__":

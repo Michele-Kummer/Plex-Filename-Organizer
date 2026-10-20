@@ -70,8 +70,9 @@ python scripts/flatten_season.py "C:\...\Sex and the City (1998)\Season 03 (2000
   the subfolder name in front of the filename (`Disc 02 - title_t03.mkv`). Names stay unique and
   still sort in disc order.
 - Discs often carry the same trailers. A file with the same extension, the same length and a size
-  within 1 KB of a file already kept counts as a copy and goes to `_duplicates` in the season
-  folder.
+  within 1 KB of a file already kept is checked further: samples of its video data are compared,
+  because two different trailers can be almost the same size. Only a real copy goes to
+  `_duplicates` in the season folder.
 - Removes subfolders left empty. Folders whose names start with `_` are skipped.
 
 | Option | Meaning |
@@ -82,12 +83,17 @@ python scripts/flatten_season.py "C:\...\Sex and the City (1998)\Season 03 (2000
 ### 2. `rename_episodes.py`: name episodes from the episode guide
 
 ```
-python scripts/rename_episodes.py "C:\...\Season 03 (2000)" --guide season3.json
-python scripts/rename_episodes.py "C:\...\Season 03 (2000)" --guide season3.json --apply
+python scripts/rename_episodes.py "C:\...\Sex and the City (1998)\Season 03 (2000)"
+python scripts/rename_episodes.py "C:\...\Sex and the City (1998)\Season 03 (2000)" --apply
 ```
 
-The guide is a JSON list of the season's episodes in order. Copy the titles and air dates from
-Google's episode guide, Wikipedia or TVDB:
+The episode titles and air dates are downloaded from [TVmaze](https://www.tvmaze.com), which is free
+and needs no account. The show is looked up by the parent folder's name. When several shows share
+that name, the year in brackets picks the right one. The first line of the output says which show
+and season were used.
+
+To use your own guide instead, pass `--guide season3.json`. The guide is a JSON list of the season's
+episodes in order, for example copied from Google's episode guide, Wikipedia or TVDB:
 
 ```json
 [
@@ -103,19 +109,30 @@ How files are matched:
 - **Files that already have a tag like `s03e05`** are renamed to that episode's title and date.
 - **Other videos** are taken in filename order, which after flattening is disc order. Videos at
   least 15 minutes long are numbered as the episodes still missing from the folder.
+- **More long videos than episodes:** the ones left over once the guide runs out become bonus
+  extras (`Season 6 Bonus 01 - Other`). If a bonus feature sits between the episodes, for example
+  an extra long title on a middle disc, name it with `--bonus` so the episodes after it keep their
+  numbers.
 - **Short clips** become Plex trailers. When there is one clip per episode, clip N is named after
-  episode N. Otherwise they are numbered (`Season 3 Extra 01 - Trailer`).
+  episode N. Otherwise they are numbered (`Season 3 Extra 01 - Trailer`). When there are more clips
+  than episodes and the first ones are the episode trailers, `--trailers-first` names those after
+  the episodes and the rest `Season 3 Extra 01 - Other`.
 - **Files already named as Plex extras** (`... - Trailer.mkv`, `- Featurette`, and similar) are
-  left alone.
+  left alone. The exception is clips the script numbered on an earlier run
+  (`Season 3 Extra 01 - Trailer`), which are named again so a rerun can fix them.
 - **Characters Windows does not allow** (`? " * < > | / \`) are removed, and a colon becomes " - ".
 
 | Option | Meaning |
 |---|---|
-| `--guide FILE` | Episode guide JSON (required) |
+| `--guide FILE` | Episode guide JSON (default: download it from TVmaze) |
+| `--year YYYY` | Year the show started, if the parent folder name has none |
+| `--save-guide FILE` | Also save the downloaded guide as JSON |
 | `--show NAME` | Show name, if the parent folder name is not right |
 | `--season N` | Season number, if the folder name has none |
 | `--min-minutes N` | Shortest length that counts as an episode (default 15) |
 | `--first N` | Episode number for the first unnamed episode file |
+| `--bonus FILE` | A long video that is a bonus feature, not an episode (repeat for more) |
+| `--trailers-first` | More clips than episodes: name the first ones after the episodes, the rest `Other` |
 | `--number-extras` | Number the short clips instead of naming them after episodes |
 | `--extra-type TYPE` | Plex extra type for short clips (default `Trailer`) |
 | `--apply` | Rename the files instead of only listing them |
@@ -137,10 +154,9 @@ Files in any other format, such as trailers or files already renamed, are skippe
 ## Typical workflow for a ripped season
 
 1. `scripts/flatten_season.py` to bring the disc rips into the season folder.
-2. Write the season's episode guide JSON.
-3. `scripts/rename_episodes.py` to name the episodes and trailers.
-4. Check `_duplicates`, then delete it when you're happy.
-5. Refresh the library in Plex.
+2. `scripts/rename_episodes.py` to name the episodes and trailers from the downloaded guide.
+3. Check `_duplicates`, then delete it when you're happy.
+4. Refresh the library in Plex.
 
 Run each step without `--apply` first.
 
@@ -201,6 +217,7 @@ skills/                     Plugin skills, one step each
 scripts/                    The Python scripts
   flatten_season.py           Flatten disc subfolders and move copies to _duplicates
   rename_episodes.py          Rename episodes and trailers from an episode guide
+  episode_guide.py            Download a season's episode guide from TVmaze
   move_date_to_end.py         Move YYYY-MM-DD from the middle of the name to the end
   plex_utils.py               Shared helpers: video lengths, safe filenames, show and season from the path
 tests/                      Unit tests for the scripts and helpers

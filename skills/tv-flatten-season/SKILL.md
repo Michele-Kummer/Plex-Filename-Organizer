@@ -10,8 +10,9 @@ file gets its subfolder name as a prefix (`Disc 02/title_t03.mkv` -> `Disc 02 - 
 so names stay unique and filename order still matches disc order.
 
 DVD and Blu-ray rips often repeat the same short clips (trailers, previews) on every disc. A file
-with the same extension, the same duration and a size within 1 KB of a file already kept counts
-as a copy and goes to `_duplicates` in the season folder. **Nothing is deleted.** Subfolders left
+with the same extension, the same duration, a size within 1 KB and the same video data (sampled
+at several points) as a file already kept counts as a copy and goes to `_duplicates` in the
+season folder. **Nothing is deleted.** Subfolders left
 empty are removed. Folders whose names start with `_` are never touched.
 
 ## Steps

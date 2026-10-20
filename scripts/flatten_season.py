@@ -3,9 +3,9 @@
 Each moved file gets its subfolder name as a prefix so names stay unique and keep their
 disc order:   Disc 02/title_t03.mkv  ->  Disc 02 - title_t03.mkv
 
-Repeated copies (same extension, same duration, size within --size-tolerance bytes) are kept
-once; the other copies go to a "_duplicates" folder inside the season folder. Nothing is
-deleted. Subfolders left empty are removed.
+Repeated copies (same extension, same duration, size within --size-tolerance bytes and the same
+video data) are kept once; the other copies go to a "_duplicates" folder inside the season
+folder. Nothing is deleted. Subfolders left empty are removed.
 
 Runs as a dry run unless --apply is given.
 """
@@ -13,7 +13,7 @@ Runs as a dry run unless --apply is given.
 import argparse
 from pathlib import Path
 
-from plex_utils import durations, is_video
+from plex_utils import durations, is_video, same_content
 
 DUPLICATES_DIR = "_duplicates"
 
@@ -46,7 +46,8 @@ def main() -> None:
         new_name = f"{prefix} - {path.name}"
         original = next((k for k in kept if k.suffix.lower() == path.suffix.lower()
                          and lengths[k] == lengths[path]
-                         and abs(k.stat().st_size - path.stat().st_size) <= args.size_tolerance), None)
+                         and abs(k.stat().st_size - path.stat().st_size) <= args.size_tolerance
+                         and same_content(k, path)), None)
         if original:
             moves.append((path, root / DUPLICATES_DIR / new_name, True))
         else:

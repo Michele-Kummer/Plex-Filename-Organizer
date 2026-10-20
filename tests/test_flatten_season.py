@@ -1,3 +1,4 @@
+import random
 import unittest
 
 from helpers import SeasonTestCase
@@ -49,6 +50,23 @@ class FlattenSeasonTests(SeasonTestCase):
         self.make("Disc 02/a.mkv", size=310)
         self.run_main(flatten_season, str(self.season), "--apply", "--size-tolerance", "5")
         self.assertEqual(self.names(), ["Disc 01 - a.mkv", "Disc 02 - a.mkv"])
+
+    def test_same_length_and_size_but_different_video_is_not_a_copy(self):
+        """Two different trailers of the same length, a few hundred bytes apart in size."""
+        (self.season / "Disc 01").mkdir()
+        (self.season / "Disc 01" / "title_t03.mkv").write_bytes(random.Random(1).randbytes(300_000))
+        (self.season / "Disc 01" / "title_t04.mkv").write_bytes(random.Random(2).randbytes(300_300))
+        self.run_main(flatten_season, str(self.season), "--apply", lengths={"title_t03.mkv": 37, "title_t04.mkv": 37})
+        self.assertEqual(self.names(), ["Disc 01 - title_t03.mkv", "Disc 01 - title_t04.mkv"])
+
+    def test_copy_with_different_header_is_a_copy(self):
+        """The same title on two discs: the video data is shifted by a slightly longer header."""
+        video = random.Random(1).randbytes(300_000)
+        for disc, header in (("Disc 01", b"h" * 100), ("Disc 02", b"h" * 188)):
+            (self.season / disc).mkdir()
+            (self.season / disc / "title_t04.mkv").write_bytes(header + video)
+        self.run_main(flatten_season, str(self.season), "--apply", lengths={"title_t04.mkv": 37})
+        self.assertEqual(self.names(self.season / "_duplicates"), ["Disc 02 - title_t04.mkv"])
 
     def test_skips_underscore_folders_and_keeps_non_videos(self):
         self.make("_duplicates/old.mkv")

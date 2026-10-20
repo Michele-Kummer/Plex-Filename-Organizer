@@ -5,7 +5,8 @@ from unittest import mock
 from helpers import SeasonTestCase  # noqa: F401  (sets up the import path)
 
 import plex_utils
-from plex_utils import _parse_duration, is_extra, safe_filename, show_and_season_from_folder
+from plex_utils import (_parse_duration, is_extra, safe_filename, show_and_season_from_folder,
+                        show_year_from_folder)
 
 
 class SafeFilenameTests(unittest.TestCase):
@@ -56,6 +57,11 @@ class ShowAndSeasonTests(unittest.TestCase):
 
     def test_no_season_number(self):
         self.assertEqual(show_and_season_from_folder(Path("/tv/Frasier/Specials")), ("Frasier", None))
+
+    def test_show_year(self):
+        folder = Path(r"C:\TV Shows\Sex and the City (1998)\Season 03 (2000)")
+        self.assertEqual(show_year_from_folder(folder), 1998)
+        self.assertIsNone(show_year_from_folder(Path("/tv/Frasier/Season 11")))
 
 
 class DurationsTests(unittest.TestCase):

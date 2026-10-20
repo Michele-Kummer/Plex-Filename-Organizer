@@ -22,12 +22,13 @@ Result format (date in brackets at the end, same as the rest of the library):
    `tv-flatten-season` skill first. Disc rips reuse names like `title_t00.mkv` on every disc,
    and flattening also moves repeated clips to `_duplicates` before they are named.
 
-3. **Look up the episode guide.** Search for `<Show> season <N> episodes`. The Wikipedia season
-   page, or "List of <Show> episodes", has the same titles and air dates as Google's episode
-   guide. Get every episode's number in the season, its exact title and its original air
-   date. Use the first broadcast date in the show's home country.
+3. **Get the episode guide.** The script downloads it from TVmaze when `--guide` is left out,
+   using the show folder's name and year and the season number. Its first output line names the
+   show and season it used. Check that they are right, and add `--year` or `--show` if not.
 
-4. **Write the guide** as JSON in your scratchpad directory (not in the repo), in episode order:
+4. **Only if TVmaze fails or is wrong:** search for `<Show> season <N> episodes` (the Wikipedia
+   season page or "List of <Show> episodes"). Write the guide as JSON in your scratchpad
+   directory (not in the repo), in episode order, and pass it with `--guide`:
    ```json
    [{"episode": 1, "title": "Where There's Smoke...", "air_date": "2000-06-04"}]
    ```
@@ -36,20 +37,27 @@ Result format (date in brackets at the end, same as the rest of the library):
 
 5. **Check the files.** Count the long videos (episodes) and short ones (clips) and check
    durations with `exiftool -T -FileName -Duration <folder>`. The episode files should match
-   the episodes missing from the folder. If the counts differ, stop and tell the user
-   (missing episode, a double-length episode, a "play all" title, bonus features).
+   the episodes missing from the folder. If there are fewer, stop and tell the user (missing
+   episode, a double-length episode). If there are more, the extras are bonus features: look
+   for one sitting between the episodes (a disc with one more long title than the others, an
+   out-of-sequence title number such as `t16` after `t03`) and pass it with `--bonus "<file>"`.
 
 6. **Dry run** (`${CLAUDE_PLUGIN_ROOT}` is this plugin's folder):
    ```
-   python "${CLAUDE_PLUGIN_ROOT}/scripts/rename_episodes.py" "<season folder>" --guide "<guide.json>"
+   python "${CLAUDE_PLUGIN_ROOT}/scripts/rename_episodes.py" "<season folder>"
    ```
    How the script decides:
    - Files with an `sNNeNN` tag are renamed to the guide's title and date for that episode.
    - Other videos are taken in filename (disc) order. Those at least `--min-minutes` long
      (default 15) become the missing episodes in order. Use `--first N` if the first file is
-     not the first missing episode.
+     not the first missing episode. Long videos left over once the guide runs out become
+     `Season N Bonus NN - Other`, and so do files passed with `--bonus`.
    - Short clips: when there is one per episode, clip N is named after episode N. Otherwise
      they are numbered. `--number-extras` forces numbering, and `--extra-type` changes "Trailer".
+     When there are more clips than episodes, list them in disc order with durations: if the
+     first ones are one trailer per episode (similar lengths, followed by different clips), ask
+     the user and use `--trailers-first`, which names the rest `Season N Extra NN - Other`.
+     Clips the script numbered earlier are renamed again on a rerun.
    - Files already named as Plex extras (`... - Trailer.mkv`) are left alone.
    - `--show` and `--season` override what the script reads from the folder path.
 
