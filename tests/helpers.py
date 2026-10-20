@@ -13,11 +13,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 
 class SeasonTestCase(unittest.TestCase):
-    """Gives each test a fresh 'Test Show (2001)/Season 02 (2002)' folder."""
+    """Gives each test a fresh 'Test Show (2001)/Season 02' folder."""
 
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
-        self.season = self.tmp / "Test Show (2001)" / "Season 02 (2002)"
+        self.season = self.tmp / "Test Show (2001)" / "Season 02"
         self.season.mkdir(parents=True)
 
     def tearDown(self):

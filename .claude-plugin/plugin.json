@@ -1,6 +1,6 @@
 {
   "name": "plex-filename-organizer",
-  "version": "1.4.0",
+  "version": "1.6.0",
   "description": "Organizes TV show folders for Plex: flattens disc rips, renames episodes and trailers from the episode guide, and moves air dates to the end of filenames.",
   "author": {
     "name": "Michele Kummer",

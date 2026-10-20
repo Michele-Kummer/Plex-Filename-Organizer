@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 
 PATTERN = re.compile(
-    r"^(?P<prefix>.+? - s\d+e\d+) - (?P<date>\d{4}-\d{2}-\d{2}) - (?P<title>.+)$",
+    r"^(?P<prefix>.+? - s\d+e\d+) - (?P<date>\d{4}-\d{2}-\d{2})\s*-\s*(?P<title>.+)$",
     re.IGNORECASE,
 )
 

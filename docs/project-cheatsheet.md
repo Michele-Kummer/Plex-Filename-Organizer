@@ -1,13 +1,11 @@
 # Project cheatsheet
 
-## Organize a season by hand (PowerShell)
-
 Run each step without `--apply` first, check the preview, then run it again with `--apply`.
 
 
 ```powershell
 cd C:\Code\Plex-Filename-Organizer
-$root  = "C:\Users\shell\Videos\TV Shows\Sex and the City (1998)\Season 04 (2001)"
+$root  = "C:\Users\shell\Videos\TV Shows\Sex and the City (1998)\Season 04"
 python scripts\flatten_season.py $root              # preview
 python scripts\flatten_season.py $root --apply      # move files, copies go to _duplicates
 python scripts\rename_episodes.py $root             # preview, downloads the episode guide from TVmaze
@@ -22,9 +20,13 @@ Check the preview:
 - **Episode numbers:** episodes are numbered in disc order (Disc 01 first). Long videos left over
   once the guide runs out become bonus extras. If a bonus sits between episodes (e.g. a disc with one
   more long title than the others), add `--bonus "Disc 03 - title_t16.mkv"`.
-- **Trailers:** short clips are named after the episodes in the same order. Open two or three to check.
-  If there are more clips than episodes they are numbered instead. When the first ones are the episode
-  trailers, add `--trailers-first`: those get episode names and the rest become `Other` extras.
+- **Trailers:** short clips go in `Trailers\` named after the episodes in the same order. Open two or
+  three to check. If there are more clips than episodes they are numbered instead. When the first ones
+  are the episode trailers, add `--trailers-first`: those get episode names and the rest go in `Other\`.
+- **Other extras** (deleted scenes, featurettes, ...) go in Plex's folders inside the season folder:
+  `Behind The Scenes`, `Deleted Scenes`, `Featurettes`, `Interviews`, `Scenes`, `Shorts`, `Other`.
+  To move old `Show - Title - Trailer.mkv` names into them without touching episodes, run
+  `python scripts\rename_episodes.py $root --extras-only --apply`.
 - **Warnings:** an `ERROR` or `WARNING` line means the file count doesn't match the guide. Fix that before applying.
 
 ### 5. Old-style names only: move the date to the end
@@ -35,6 +37,16 @@ because step 4 already puts the date at the end.
 ```powershell
 python scripts\move_date_to_end.py $root            # preview
 python scripts\move_date_to_end.py $root --apply    # rename
+```
+
+### Check names any time
+
+On a season, a show or the whole library. `RENAME` lines are fixed with `--apply`; `CHECK` lines
+need a look by hand.
+
+```powershell
+python scripts\check_names.py "C:\Users\shell\Videos\TV Shows"            # report
+python scripts\check_names.py "C:\Users\shell\Videos\TV Shows" --apply    # fix
 ```
 
 ### 6. Finish
@@ -51,7 +63,7 @@ Remove-Item "$root\_duplicates" -Recurse  # optional: delete the copies once you
 In Claude Code, from any folder:
 
 ```
-/organize-season C:\Users\shell\Videos\TV Shows\Sex and the City (1998)\Season 04 (2001)
+/organize-season C:\Users\shell\Videos\TV Shows\Sex and the City (1998)\Season 04
 ```
 
 Claude looks up the episode guide, runs steps 2–5 and shows each preview before changing anything.

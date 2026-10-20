@@ -5,7 +5,8 @@ disc order:   Disc 02/title_t03.mkv  ->  Disc 02 - title_t03.mkv
 
 Repeated copies (same extension, same duration, size within --size-tolerance bytes and the same
 video data) are kept once; the other copies go to a "_duplicates" folder inside the season
-folder. Nothing is deleted. Subfolders left empty are removed.
+folder. Nothing is deleted. Subfolders left empty are removed. Plex extras folders (Trailers,
+Other, Deleted Scenes, ...) and folders starting with "_" are left as they are.
 
 Runs as a dry run unless --apply is given.
 """
@@ -13,7 +14,7 @@ Runs as a dry run unless --apply is given.
 import argparse
 from pathlib import Path
 
-from plex_utils import durations, is_video, same_content
+from plex_utils import durations, is_extras_folder, is_video, same_content
 
 DUPLICATES_DIR = "_duplicates"
 
@@ -30,10 +31,11 @@ def main() -> None:
     if not root.is_dir():
         parser.error(f"not a folder: {root}")
 
-    nested = sorted(
-        p for p in root.rglob("*")
-        if is_video(p) and p.parent != root and not any(part.startswith("_") for part in p.relative_to(root).parts[:-1])
-    )
+    def skipped(p: Path) -> bool:
+        """In a "_" folder or a Plex extras folder (Trailers, Other, ...), which stay as they are."""
+        return any(part.startswith("_") or is_extras_folder(part) for part in p.relative_to(root).parts[:-1])
+
+    nested = sorted(p for p in root.rglob("*") if is_video(p) and p.parent != root and not skipped(p))
     if not nested:
         print("No videos in subfolders; nothing to flatten.")
         return
@@ -79,7 +81,7 @@ def main() -> None:
     print(f"\n{action} {len(moves) - dupes} file(s) to the season folder and {dupes} copy(ies) to {DUPLICATES_DIR}.")
     if removed:
         print(f"Removed empty folders: {', '.join(removed)}")
-    leftovers = [p for p in root.rglob("*") if p.is_file() and p.parent != root and DUPLICATES_DIR not in p.parts]
+    leftovers = [p for p in root.rglob("*") if p.is_file() and p.parent != root and not skipped(p)]
     if args.apply and leftovers:
         print("Non-video files left in subfolders:", *[f"  {p.relative_to(root)}" for p in leftovers], sep="\n")
     if not args.apply:

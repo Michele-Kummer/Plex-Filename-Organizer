@@ -11,6 +11,18 @@ VIDEO_EXTENSIONS = {".mkv", ".mp4", ".m4v", ".avi", ".mov", ".wmv", ".ts", ".m2t
 EXTRA_SUFFIXES = ("trailer", "behindthescenes", "deleted", "featurette", "interview",
                   "scene", "short", "other", "behind the scenes")
 
+# Plex extras folders inside a season folder, by extra type, e.g. "Season 03/Trailers/Pilot.mkv".
+EXTRA_FOLDERS = {"trailer": "Trailers", "behindthescenes": "Behind The Scenes", "deleted": "Deleted Scenes",
+                 "featurette": "Featurettes", "interview": "Interviews", "scene": "Scenes",
+                 "short": "Shorts", "other": "Other"}
+
+_INLINE_EXTRA = re.compile(r"(.*?)\s*-\s*(trailer|behind ?the ?scenes|deleted|featurette|interview|scene|short|other)",
+                           re.IGNORECASE)
+
+# Plex's own inline extra names: the type straight after a hyphen, "Pilot - Scene 16-deleted.mkv".
+_PLEX_INLINE_EXTRA = re.compile(r".*\S-(trailer|behindthescenes|deleted|featurette|interview|scene|short|other)\d*",
+                                re.IGNORECASE)
+
 _INVALID_CHARS = re.compile(r'[<>:"/\\|?*]')
 
 
@@ -27,6 +39,31 @@ def is_video(path: Path) -> bool:
 def is_extra(path: Path) -> bool:
     stem = path.stem.lower()
     return any(stem.endswith("-" + s) or stem.endswith(" - " + s) for s in EXTRA_SUFFIXES)
+
+
+def extra_folder(kind: str) -> str:
+    """Plex extras folder for an extra type: "Trailer" -> "Trailers". Raises KeyError if unknown."""
+    return EXTRA_FOLDERS[kind.lower().replace(" ", "")]
+
+
+def is_extras_folder(name: str) -> bool:
+    return name.lower() in {f.lower() for f in EXTRA_FOLDERS.values()}
+
+
+def is_plex_inline_extra(stem: str) -> bool:
+    """True for names Plex already reads as extras, e.g. "Show - s06e20 - Title - Ending 1-deleted"."""
+    return bool(_PLEX_INLINE_EXTRA.fullmatch(stem))
+
+
+def split_inline_extra(stem: str, show: str) -> tuple[str, str] | None:
+    """(extras folder, title) for an old-style name like "Show - Pilot - Trailer", else None."""
+    m = _INLINE_EXTRA.fullmatch(stem)
+    if not m:
+        return None
+    title = m.group(1)
+    if title.lower().startswith(show.lower() + " - "):
+        title = title[len(show) + 3:]
+    return extra_folder(m.group(2)), title.strip() or "Untitled"
 
 
 def _parse_duration(text: str) -> float | None:
@@ -75,7 +112,7 @@ def same_content(a: Path, b: Path, probe: int = 4096, slack: int = 65536) -> boo
 
 
 def show_and_season_from_folder(folder: Path) -> tuple[str | None, int | None]:
-    """Guess the show and season from a Plex-style path like 'Show (1998)/Season 03 (2000)'."""
+    """Guess the show and season from a Plex-style path like 'Show (1998)/Season 03'."""
     season = None
     if m := re.search(r"season\s*(\d+)", folder.name, re.IGNORECASE):
         season = int(m.group(1))

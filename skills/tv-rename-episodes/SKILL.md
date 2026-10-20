@@ -9,13 +9,13 @@ Result format (date in brackets at the end, same as the rest of the library):
 
 ```
 <Show> - s<SS>e<EE> - <Title> [<YYYY-MM-DD>].<ext>
-<Show> - <Episode title> - Trailer.<ext>
+Trailers/<Episode title>.<ext>     (inside the season folder)
 ```
 
 ## Steps
 
 1. **Work out the show and season.** Take them from the request, or from a Plex-style path
-   such as `...\Sex and the City (1998)\Season 03 (2000)`, where the show is the parent folder
+   such as `...\Sex and the City (1998)\Season 03`, where the show is the parent folder
    without the year and the season is the number in the folder name. If unsure, ask.
 
 2. **Flatten first if needed.** If the videos are in subfolders (Disc 01, Disc 02, ...), run the
@@ -51,14 +51,19 @@ Result format (date in brackets at the end, same as the rest of the library):
    - Other videos are taken in filename (disc) order. Those at least `--min-minutes` long
      (default 15) become the missing episodes in order. Use `--first N` if the first file is
      not the first missing episode. Long videos left over once the guide runs out become
-     `Season N Bonus NN - Other`, and so do files passed with `--bonus`.
-   - Short clips: when there is one per episode, clip N is named after episode N. Otherwise
-     they are numbered. `--number-extras` forces numbering, and `--extra-type` changes "Trailer".
-     When there are more clips than episodes, list them in disc order with durations: if the
-     first ones are one trailer per episode (similar lengths, followed by different clips), ask
-     the user and use `--trailers-first`, which names the rest `Season N Extra NN - Other`.
+     `Other/Season N Bonus NN`, and so do files passed with `--bonus`.
+   - Extras go in Plex extras folders inside the season folder (`Trailers`, `Behind The Scenes`,
+     `Deleted Scenes`, `Featurettes`, `Interviews`, `Scenes`, `Shorts`, `Other`). Never name an
+     extra `Show - Title - Trailer.mkv`: Plex does not recognize a space after the hyphen.
+   - Short clips: when there is one per episode, clip N becomes `Trailers/<episode title>`.
+     Otherwise they are numbered. `--number-extras` forces numbering, and `--extra-type` picks
+     another folder. When there are more clips than episodes, list them in disc order with
+     durations: if the first ones are one trailer per episode (similar lengths, followed by
+     different clips), ask the user and use `--trailers-first`, which puts the rest in `Other`.
      Clips the script numbered earlier are renamed again on a rerun.
-   - Files already named as Plex extras (`... - Trailer.mkv`) are left alone.
+   - Files in extras folders and names in Plex's own format (`... - Scene 16-deleted.mkv`) are
+     left alone. Old-style `... - Trailer.mkv` names are moved into the matching folder;
+     `--extras-only` does only that.
    - `--show` and `--season` override what the script reads from the folder path.
 
 7. **Show the user the plan** and point out assumptions: that disc order is episode order,

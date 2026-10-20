@@ -13,7 +13,8 @@ DVD and Blu-ray rips often repeat the same short clips (trailers, previews) on e
 with the same extension, the same duration, a size within 1 KB and the same video data (sampled
 at several points) as a file already kept counts as a copy and goes to `_duplicates` in the
 season folder. **Nothing is deleted.** Subfolders left
-empty are removed. Folders whose names start with `_` are never touched.
+empty are removed. Folders whose names start with `_` and Plex extras folders (`Trailers`,
+`Deleted Scenes`, `Featurettes`, `Other`, ...) are never touched.
 
 ## Steps
 

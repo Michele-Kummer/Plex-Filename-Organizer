@@ -68,6 +68,15 @@ class FlattenSeasonTests(SeasonTestCase):
         self.run_main(flatten_season, str(self.season), "--apply", lengths={"title_t04.mkv": 37})
         self.assertEqual(self.names(self.season / "_duplicates"), ["Disc 02 - title_t04.mkv"])
 
+    def test_plex_extras_folders_left_alone(self):
+        self.make("Trailers/Pilot.mkv")
+        self.make("Deleted Scenes/Alternate Ending.mkv")
+        self.make("Disc 01/title_t00.mkv")
+        out = self.run_main(flatten_season, str(self.season), "--apply")
+        self.assertTrue((self.season / "Trailers" / "Pilot.mkv").exists())
+        self.assertTrue((self.season / "Deleted Scenes" / "Alternate Ending.mkv").exists())
+        self.assertNotIn("Non-video files left", out)
+
     def test_skips_underscore_folders_and_keeps_non_videos(self):
         self.make("_duplicates/old.mkv")
         self.make("Disc 01/title_t00.mkv")
