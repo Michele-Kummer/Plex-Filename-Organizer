@@ -1,0 +1,20 @@
+# Audit outputs
+*.xlsx
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+
+# Don't commit user media accidentally
+sample-data/private/

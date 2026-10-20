@@ -1,0 +1,8 @@
+{
+  "name": "plex-filename-organizer",
+  "owner": { "name": "Michele Kummer" },
+  "description": "Claude Code plugin that organizes TV show folders for Plex.",
+  "plugins": [
+    { "name": "plex-filename-organizer", "source": "./" }
+  ]
+}
