@@ -11,7 +11,8 @@ VIDEO_EXTENSIONS = {".mkv", ".mp4", ".m4v", ".avi", ".mov", ".wmv", ".ts", ".m2t
 EXTRA_SUFFIXES = ("trailer", "behindthescenes", "deleted", "featurette", "interview",
                   "scene", "short", "other", "behind the scenes")
 
-# Plex extras folders inside a season folder, by extra type, e.g. "Season 03/Trailers/Pilot.mkv".
+# Plex extras folders inside a season folder, by extra type, e.g. "Season 03/Other/Gag Reel.mkv".
+# Trailers are the exception: they go in the show's Trailers folder, by season (see season_trailer_path).
 EXTRA_FOLDERS = {"trailer": "Trailers", "behindthescenes": "Behind The Scenes", "deleted": "Deleted Scenes",
                  "featurette": "Featurettes", "interview": "Interviews", "scene": "Scenes",
                  "short": "Shorts", "other": "Other"}
@@ -24,6 +25,25 @@ _PLEX_INLINE_EXTRA = re.compile(r".*\S-(trailer|behindthescenes|deleted|featuret
                                 re.IGNORECASE)
 
 _INVALID_CHARS = re.compile(r'[<>:"/\\|?*]')
+
+# How a copy was told apart when its name was taken: "Title_2.mkv", "Title_12345.mp4".
+# Other tools do it differently (" (1)", " - Copy"); check_names.py --collision-suffix changes it.
+DEFAULT_COLLISION_SUFFIX = r"_\d{1,5}"
+_collision_suffix = re.compile(rf"(?:{DEFAULT_COLLISION_SUFFIX})$")
+
+
+def set_collision_suffix(pattern: str) -> None:
+    """Use `pattern` (a regular expression for the end of a name; "" turns it off) for strip_collision_suffix."""
+    global _collision_suffix
+    _collision_suffix = re.compile(rf"(?:{pattern})$") if pattern else None
+
+
+def strip_collision_suffix(stem: str) -> str:
+    """The name without the number added to dodge a name clash: 'Title - Trailer_12' -> 'Title - Trailer'."""
+    if _collision_suffix is None:
+        return stem
+    new = _collision_suffix.sub("", stem)
+    return new if new.strip(" -_") else stem
 
 
 def safe_filename(text: str) -> str:
@@ -66,6 +86,29 @@ def split_inline_extra(stem: str, show: str) -> tuple[str, str] | None:
     return extra_folder(m.group(2)), title.strip() or "Untitled"
 
 
+def season_trailer_path(show_dir: Path, season: int, title: str = "") -> Path:
+    """Where a season's trailer goes, without the extension: in the show's Trailers folder, by season,
+    'Show (1998)/Trailers/Season 01/Pilot', or '.../Season 01/Season 1 Trailer' when it has no title.
+    The folder tells Plex the show, so the name leaves it out."""
+    return show_dir / "Trailers" / f"Season {season:02d}" / safe_filename(title or f"Season {season} Trailer")
+
+
+def strip_show(stem: str, show: str) -> str:
+    """The name without a leading show name, with or without its year:
+    'Show (1998) - s01e01 - Pilot', 'Show - s01e01 - Pilot' and 'Show s01e01 - Pilot' -> 's01e01 - Pilot'."""
+    m = re.match(rf"{re.escape(show)}(?![a-z0-9])\s*(?:[\[(]\s*(?:19|20)\d{{2}}\s*[\])])?\s*-?\s*", stem, re.IGNORECASE)
+    return stem[m.end():] if show and m and m.end() < len(stem) else stem
+
+
+def show_label(folder: Path, show: str | None = None) -> str:
+    """The show as named on its folder, year included ('Show (1998)'), for a season folder.
+    A --show override keeps the folder's year."""
+    year = show_year_from_folder(folder)
+    if show:
+        return safe_filename(show) + (f" ({year})" if year else "")
+    return folder.parent.name
+
+
 def _parse_duration(text: str) -> float | None:
     text = text.strip()
     if m := re.fullmatch(r"(\d+):(\d{2}):(\d{2})", text):
@@ -89,6 +132,38 @@ def durations(paths: list[Path]) -> dict[Path, float | None]:
         for path, line in zip(paths, lines):
             result[path] = _parse_duration(line)
     return result
+
+
+def try_move(source: Path, target: Path) -> str | None:
+    """Rename `source` to `target`, making its folder first; copy and delete when `target` is on another
+    drive. Returns None when done, or why it could not be done (e.g. the file is open in another
+    program), leaving `source` where it was so the run can go on with the other files."""
+    existed = target.exists()
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if source.drive.lower() != target.drive.lower():
+            shutil.move(str(source), str(target))
+        else:
+            source.rename(target)
+    except OSError as error:
+        if source.exists() and target.is_file() and not existed:  # copied, but the original is locked
+            try:
+                target.unlink()
+            except OSError:
+                pass
+        return error.strerror or str(error)
+    return None
+
+
+def remove_if_empty(folder: Path) -> bool:
+    """Remove `folder` if it is empty. False when it is not, or cannot be removed (in use)."""
+    try:
+        if folder.is_dir() and not any(folder.iterdir()):
+            folder.rmdir()
+            return True
+    except OSError:
+        pass
+    return False
 
 
 def same_content(a: Path, b: Path, probe: int = 4096, slack: int = 65536) -> bool:

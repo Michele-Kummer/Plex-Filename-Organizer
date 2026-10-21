@@ -10,6 +10,8 @@ import argparse
 import re
 from pathlib import Path
 
+from plex_utils import try_move
+
 PATTERN = re.compile(
     r"^(?P<prefix>.+? - s\d+e\d+) - (?P<date>\d{4}-\d{2}-\d{2})\s*-\s*(?P<title>.+)$",
     re.IGNORECASE,
@@ -33,7 +35,7 @@ def main() -> None:
     if not folder.is_dir():
         parser.error(f"not a folder: {folder}")
 
-    renamed = skipped = 0
+    renamed = skipped = failed = 0
     for path in sorted(folder.iterdir()):
         if not path.is_file():
             continue
@@ -46,12 +48,17 @@ def main() -> None:
             skipped += 1
             continue
         print(f"{path.name}\n  -> {new_name}")
-        if args.apply:
-            path.rename(target)
+        if args.apply and (error := try_move(path, target)):
+            print(f"  FAILED ({error})")
+            failed += 1
+            continue
         renamed += 1
 
     action = "Renamed" if args.apply else "Would rename"
     print(f"\n{action} {renamed} file(s); skipped {skipped}.")
+    if failed:
+        print(f"{failed} could not be renamed (FAILED above), usually because another program has the file "
+              f"open (Plex, a player, Explorer's preview). Close it and run again.")
     if not args.apply and renamed:
         print("Run again with --apply to rename.")
 

@@ -1,7 +1,7 @@
 """Rename the videos in a season folder from an episode guide.
 
-    Show - s03e01 - Where There's Smoke... [2000-06-04].mkv
-    Trailers/Where There's Smoke....mkv
+    Show (1998)/Season 03/Show (1998) - s03e01 - Where There's Smoke... [2000-06-04].mkv
+    Show (1998)/Trailers/Season 03/Where There's Smoke....mkv
 
 The guide is a JSON list, one entry per episode, in episode order:
     [{"episode": 1, "title": "Where There's Smoke...", "air_date": "2000-06-04"}, ...]
@@ -12,20 +12,25 @@ Files already carrying an sNNeNN tag are renamed to the guide's title and date f
 Other videos (e.g. disc rips such as "Disc 01 - title_t00.mkv") are taken in filename order:
 long ones become the episodes that are still missing, short ones become extras. When there is
 one short clip per episode, clip N is named after episode N; otherwise they are numbered.
-Extras go in Plex extras folders inside the season folder (Trailers, Other, ...). Old-style extras
-named inline ("Show - Title - Trailer.mkv") are moved into the matching folder.
+Episode names start with the show folder's name, year included. Trailers go in the show's Trailers
+folder, in a folder for the season ("Trailers/Season 03/Title.mkv"), named without the show, which
+the folder already gives. Other extras go in Plex extras folders inside the season folder
+(Other, Featurettes, ...).
+Old-style extras named inline ("Show - Title - Trailer.mkv") are renamed or moved the same way.
 
 Runs as a dry run unless --apply is given.
 """
 
 import argparse
 import json
+import os
 import re
 from pathlib import Path
 
 from episode_guide import fetch_guide
 from plex_utils import (durations, extra_folder, is_plex_inline_extra, is_video, safe_filename,
-                        show_and_season_from_folder, show_year_from_folder, split_inline_extra)
+                        season_trailer_path, show_and_season_from_folder, show_label, show_year_from_folder,
+                        split_inline_extra, try_move)
 
 EPISODE_TAG = re.compile(r"\bs(\d{1,2})e(\d{1,3})\b", re.IGNORECASE)
 
@@ -106,10 +111,12 @@ def main() -> None:
 
     guide = {} if args.extras_only else load_guide(parser, args, show, season, folder)
 
+    label = show_label(folder, args.show)  # "Show (1998)"
+
     def episode_name(n: int, ext: str) -> str:
         entry = guide[n]
         date = f" [{entry['air_date']}]" if entry.get("air_date") else ""
-        return f"{safe_filename(show)} - s{season:02d}e{n:02d} - {safe_filename(entry['title'])}{date}{ext}"
+        return f"{label} - s{season:02d}e{n:02d} - {safe_filename(entry['title'])}{date}{ext}"
 
     show_name = safe_filename(show)
     try:
@@ -117,21 +124,42 @@ def main() -> None:
     except KeyError:
         parser.error(f"unknown --extra-type {args.extra_type}")
     plan: list[tuple[Path, str, str]] = []  # (source, new path relative to the season folder, note)
+    trailer_dir = season_trailer_path(folder.parent, season).parent  # "Show (1998)/Trailers/Season 03"
+
+    def relative(path: Path) -> str:
+        """`path` relative to the season folder: 'Other/Gag Reel.mkv', '../Trailers/Season 03/Pilot.mkv'."""
+        return Path(os.path.relpath(path, folder)).as_posix()
+
+    def extra_path(kind_dir: str, title: str) -> str:
+        """Where an extra goes: trailers in the show's Trailers/Season ## folder, others in their Plex
+        folder inside the season folder."""
+        if kind_dir == "Trailers":  # relpath drops the dots ending "Three...", so only the folder goes through it
+            target = season_trailer_path(folder.parent, season, title)
+            return f"{relative(target.parent)}/{target.name}"
+        return f"{kind_dir}/{safe_filename(title)}"
 
     # Clips this script numbered on an earlier run are renamed again, so a rerun can fix them.
     numbered = re.compile(rf"Season {season} Extra \d+", re.IGNORECASE)
+    numbered_trailer = re.compile(rf"Season {season} Trailer \d+", re.IGNORECASE)
+    numbered_inline = re.compile(re.escape(f"{label} - S{season:02d} - Extra ") + r"\d+-trailer", re.IGNORECASE)
     old_numbered = re.compile(rf"{re.escape(show_name)} - Season {season} Extra \d+ - "
                               rf"{re.escape(args.extra_type)}", re.IGNORECASE)
     videos = []
-    for p in (p for p in folder.iterdir() if is_video(p) and not is_plex_inline_extra(p.stem)):
+    for p in (p for p in folder.iterdir() if is_video(p)):
+        if is_plex_inline_extra(p.stem):
+            if numbered_inline.fullmatch(p.stem) and not args.extras_only:
+                videos.append(p)
+            continue
         inline = None if EPISODE_TAG.search(p.stem) or old_numbered.fullmatch(p.stem) \
             else split_inline_extra(p.stem, show_name)
         if inline:
-            plan.append((p, f"{inline[0]}/{safe_filename(inline[1])}{p.suffix}", "extra"))
+            plan.append((p, f"{extra_path(*inline)}{p.suffix}", "extra"))
         elif not args.extras_only:
             videos.append(p)
     if (folder / clip_dir).is_dir() and not args.extras_only:
         videos += [p for p in (folder / clip_dir).iterdir() if is_video(p) and numbered.fullmatch(p.stem)]
+    if trailer_dir.is_dir() and not args.extras_only:
+        videos += [p for p in trailer_dir.iterdir() if is_video(p) and numbered_trailer.fullmatch(p.stem)]
     videos.sort(key=natural_key)
 
     tagged, untagged = {}, []
@@ -181,14 +209,16 @@ def main() -> None:
                                              or (args.trailers_first and len(extras) > len(guide)))
     for i, p in enumerate(extras, start=1):
         if by_episode and i <= len(guide):
-            target = f"{clip_dir}/{safe_filename(guide[sorted(guide)[i - 1]]['title'])}"
+            target = extra_path(clip_dir, guide[sorted(guide)[i - 1]]['title'])
         elif by_episode:
             target = f"Other/Season {season} Extra {i - len(guide):02d}"
+        elif clip_dir == "Trailers":
+            target = extra_path(clip_dir, f"Season {season} Trailer {i:02d}")
         else:
             target = f"{clip_dir}/Season {season} Extra {i:02d}"
         plan.append((p, target + p.suffix, fmt_length(lengths[p])))
 
-    changes = [(p, name, note) for p, name, note in plan if p.relative_to(folder).as_posix() != name]
+    changes = [(p, name, note) for p, name, note in plan if relative(p) != name]
     targets = [name.lower() for _, name, _ in plan]
     clashes = {n for n in targets if targets.count(n) > 1}
     clashes |= {name.lower() for p, name, _ in changes if (folder / name).exists()
@@ -198,11 +228,12 @@ def main() -> None:
             print(f"ERROR more than one file would be named: {name}")
         raise SystemExit(1)
 
+    failed = 0
     for p, name, note in changes:
-        print(f"{p.relative_to(folder)}  ({note})\n  -> {Path(name)}")
-        if args.apply:
-            (folder / name).parent.mkdir(exist_ok=True)
-            p.rename(folder / name)
+        print(f"{Path(relative(p))}  ({note})\n  -> {Path(name)}")
+        if args.apply and (error := try_move(p, folder / name)):
+            print(f"  FAILED ({error})")
+            failed += 1
 
     if extras and by_episode:
         print("\nNOTE short clips were named after episodes in filename order; spot-check a few.")
@@ -213,7 +244,10 @@ def main() -> None:
     if unmatched:
         print(f"Episodes with no file: {', '.join(f's{season:02d}e{n:02d}' for n in unmatched)}")
     action = "Renamed" if args.apply else "Would rename"
-    print(f"\n{action} {len(changes)} file(s); {len(plan) - len(changes)} already correct.")
+    print(f"\n{action} {len(changes) - failed} file(s); {len(plan) - len(changes)} already correct.")
+    if failed:
+        print(f"{failed} could not be renamed (FAILED above), usually because another program has the file "
+              f"open (Plex, a player, Explorer's preview). Close it and run again.")
     if not args.apply and changes:
         print("Run again with --apply to rename.")
 

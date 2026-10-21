@@ -6,34 +6,53 @@ show). For each season it looks for:
   - Extras named inline the old way, with a space after the hyphen ("Show - Title - Trailer.mkv")
     or by keyword ("Show - Trailer - Title.mkv", "Show - Tribute - Bonus.mkv",
     "Show - Deleted Scene 01.mkv"). They are moved into Plex extras folders:
-        Show - Title - Trailer.mkv  ->  Trailers/Title.mkv
-  - Extras folders with a name Plex does not know ("Extras", "Bonus Features", "trailer").
+        Show - Title - Behind The Scenes.mkv  ->  Behind The Scenes/Title.mkv
+  - Trailers, which belong in the show's Trailers folder, in a folder for their season, named
+    without the show (the folders already tell Plex which show and season):
+        Season 01/Show - Title - Trailer.mkv, Season 01/Trailers/Title.mkv  ->  Trailers/Season 01/Title.mkv
+        Season 01/Show - Trailer.mkv                                        ->  Trailers/Season 01/Season 1 Trailer.mkv
+        Season 01/Show (1998) - S01 - Title-trailer.mkv (the old layout)    ->  Trailers/Season 01/Title.mkv
+    Trailers already there that repeat the show name lose it ("Show - Title.mkv" -> "Title.mkv").
+  - Extras folders with a name Plex does not know ("Extras", "Bonus Features").
     They are renamed, e.g. "Bonus Features" -> "Other".
   - Files in extras folders that repeat the show name ("Trailers/Show - Title.mkv" -> "Trailers/Title.mkv").
-  - Episodes not in "Show - s##e## - Title [YYYY-MM-DD]" form: the tag is padded to at least two
-    digits and lower-cased (S2E3 -> s02e03; s01e101 and s01e04A are kept), any date moves to the
-    end in brackets, and the parts are joined with " - ".
+  - Episodes not in "Show (1998) - s##e## - Title [YYYY-MM-DD]" form: the name starts with the show
+    folder's name, year included; the tag is padded to at least two digits and lower-cased
+    (S2E3 -> s02e03; s01e101 and s01e04A are kept), any date moves to the end in brackets, and the
+    parts are joined with " - ". A name that starts with something other than the show is reported.
   - Easter eggs ("Show - Eggs - Title") go to Other and keep "Eggs" in the name.
   - Hyphens between words written as anything other than " - " ("Eggs- Title", "Title -Part"),
     in every video name. Hyphens inside words ("Catch-38") are kept.
 
-Date-based episodes ("Show - 2013-08-12 - Title") are fine for Plex. Reported but not changed:
+  - Copy numbers added to dodge a name clash ("Title_2.mkv", up to 5 digits; --collision-suffix
+    for another style). When the clean name is taken by the same video, the copy goes to
+    _duplicates; by a different one, it is skipped for a person to compare.
+
+Date-based episodes ("Show - 2013-08-12 - Title") get the show's year too, from the show folder:
+"Show (2012) - 2013-08-12 - Title", so Plex matches the right show. Reported but not changed:
 videos it cannot place, more than one date in a name, mistyped dates, tags with no "e"
 ("s0121B"), and disc folders that still need flattening. Folders starting with "_" are skipped.
+
+With --movies MOVIES_ROOT it checks movie folders instead (see movie_names.py): the movie library
+itself when the folder is MOVIES_ROOT, or a separate folder of trailers and bonus material, whose
+extras are moved into their movie's folder under MOVIES_ROOT.
 
 Runs as a dry run unless --apply is given.
 """
 
 import argparse
 import functools
+import os
 import re
 import urllib.parse
 from collections import Counter
 from pathlib import Path
 
 from episode_guide import _get, pick_show
-from plex_utils import (EXTRA_FOLDERS, is_plex_inline_extra, is_video, safe_filename, show_and_season_from_folder,
-                        split_inline_extra)
+from plex_utils import (DEFAULT_COLLISION_SUFFIX, EXTRA_FOLDERS, is_plex_inline_extra, is_video, safe_filename,
+                        same_content, season_trailer_path, set_collision_suffix, show_and_season_from_folder,
+                        show_label, split_inline_extra, strip_collision_suffix, strip_show, try_move,
+                        remove_if_empty)
 
 # A season/episode tag, however it is written: s1e3, S01E03, s01 e03, s01e4A (split episode).
 EPISODE_TAG = re.compile(r"(?<![a-z0-9])s(\d{1,3})\s*e(\d{1,4})([a-z]?)(?![a-z0-9])", re.IGNORECASE)
@@ -46,6 +65,7 @@ SPLIT_DATE = re.compile(r"(?<!\d)(\d{4})\s*-\s*(\d{2})\s*-\s*(\d{2})(?!\d)")  # 
 YEAR = re.compile(r"[\[(]\s*((?:19|20)\d{2})\s*[\])]?|(?<![\d-])((?:19|20)\d{2})\s*[\])]")
 # Plex also reads date-based episodes: "Show - 2013-08-12 - Title".
 DATE_EPISODE = re.compile(r".+? - \d{4}-\d{2}-\d{2}( - .+)?")
+DATE_START = re.compile(r"\d{4}-\d{2}-\d{2}(?!\d)")  # a date-based name once the show is taken off
 SEASON_FOLDER = re.compile(r"(season\s*\d+|specials)\b.*", re.IGNORECASE)
 DISC_FOLDER = re.compile(r"(disc|disk|dvd|bd)\s*\d+.*", re.IGNORECASE)
 
@@ -115,6 +135,12 @@ DATE_MOVED = "date or year moved to the end in []"
 TAG_FORMAT = "season/episode written as s##e##"
 MINOR = "minor formatting (spaces, hyphens, brackets)"
 FOLDER_RENAMED = "extras folder renamed"
+TRAILER_MOVED = "trailer moved to the show's Trailers/Season ## folder"
+SHOW_PREFIX = "show name and year put at the start"
+# A trailer in the old layout, in the season folder: "Show (1998) - S01 - Pilot-trailer", "Show (1998) - S01-trailer".
+OLD_TRAILER = re.compile(r"(.*?)-trailer\d*", re.IGNORECASE)
+COLLISION = "copy number removed (_1)"
+DUPLICATE = "copy moved to _duplicates"
 SEASON_PADDED = "season folder numbered 01, 02, ... (sorts in order)"
 SEASON_YEAR = "year removed from season folder (it belongs on the show folder)"
 SEASON_NUMBER = re.compile(r"season\s*(\d+)(.*)", re.IGNORECASE)
@@ -168,6 +194,13 @@ def episode_changes(stem: str, new: str) -> list[str]:
     return list(dict.fromkeys(kinds))
 
 
+def prefix_change(name: str, label: str) -> list[str]:
+    """The kind of fix that puts `label` ('Show (1998)') at the start of episode name `name`, if any."""
+    if name.startswith(f"{label} - "):
+        return []
+    return [MINOR] if name.lower().startswith(label.lower()) else [SHOW_PREFIX]
+
+
 def classify_extra(stem: str, show: str) -> tuple[str, str] | None:
     """(extras folder, title) for a video named as an extra in a way Plex does not read, else None."""
     segments = SEGMENT_SPLIT.split(stem)
@@ -198,6 +231,41 @@ def without_show(stem: str, show: str) -> str:
     return stem[len(prefix):] if stem.lower().startswith(prefix) and len(stem) > len(prefix) else stem
 
 
+def season_trailer(folder: Path, show: str, title: str, suffix: str) -> Path:
+    """Where a trailer for season folder `folder` goes: 'Show (1998)/Trailers/Season 01/Title.mkv'.
+    A trailer titled only after the show gets 'Season 1 Trailer'."""
+    season = show_and_season_from_folder(folder)[1] or 0
+    title = "" if title.lower() in (show.lower(), show_label(folder, show).lower()) else title
+    target = season_trailer_path(folder.parent, season, title)
+    return target.with_name(target.name + suffix)
+
+
+def old_trailer_title(stem: str, show: str) -> str:
+    """The title in an old-layout trailer name: 'Show (1998) - S01 - Pilot-trailer' -> 'Pilot',
+    'Show (1998) - S01-trailer' -> ''."""
+    text = strip_show(OLD_TRAILER.fullmatch(stem)[1], show)
+    return tidy(re.sub(r"^s\d+(?![a-z0-9])\s*-?\s*", "", text, flags=re.IGNORECASE))
+
+
+def show_trailers(folder: Path, show: str):
+    """Yield (source, target, kinds of fix) for trailers already in the show's Trailers folder for the
+    season of `folder` whose name or season folder is not right, e.g. 'Trailers/Season 1/Show - Pilot.mkv'."""
+    season = show_and_season_from_folder(folder)[1]
+    trailers = folder.parent / "Trailers"
+    if season is None or not trailers.is_dir():
+        return
+    for d in sorted(trailers.iterdir()):
+        m = SEASON_NUMBER.fullmatch(d.name)
+        if not d.is_dir() or not m or int(m[1]) != season:
+            continue
+        for f in sorted(x for x in d.iterdir() if is_video(x)):
+            name = strip_collision_suffix(f.stem)
+            target = season_trailer(folder, show, tidy(strip_show(tidy(name), show)), f.suffix)
+            if target.as_posix() != f.as_posix():
+                tidied = target.parent != f.parent or target.name != f"{name}{f.suffix}"
+                yield f, target, ([COLLISION] if name != f.stem else []) + ([MINOR] if tidied else [])
+
+
 def check_season(folder: Path, show: str):
     """Yield (source, target, kinds of fix) for each rename, and (source, None, reason) for each
     thing to check by hand, in one season folder."""
@@ -212,35 +280,76 @@ def check_season(folder: Path, show: str):
             if target_dir is None:
                 yield p, None, "unknown folder"
                 continue
+            if target_dir == "Trailers":  # trailers belong in the show's Trailers/Season ## folder
+                for f in sorted(x for x in p.iterdir() if is_video(x)):
+                    name = strip_collision_suffix(f.stem)
+                    inline = split_inline_extra(name, show)  # "Trailers/Title - Trailer" -> "Title"
+                    title = tidy(without_show(tidy(inline[1] if inline and inline[0] == target_dir else name), show))
+                    yield f, season_trailer(folder, show, title, f.suffix), [TRAILER_MOVED]
+                continue
             if target_dir != p.name:
                 yield p, folder / target_dir, [FOLDER_RENAMED]
             for f in sorted(x for x in p.iterdir() if is_video(x)):
-                inline = split_inline_extra(f.stem, show)  # "Trailers/Title - Trailer" -> "Title"
-                title = tidy(without_show(tidy(inline[1] if inline and inline[0] == target_dir else f.stem), show))
+                name = strip_collision_suffix(f.stem)
+                inline = split_inline_extra(name, show)  # "Trailers/Title - Trailer" -> "Title"
+                title = tidy(without_show(tidy(inline[1] if inline and inline[0] == target_dir else name), show))
                 if title != f.stem:
-                    yield f, folder / target_dir / f"{safe_filename(title)}{f.suffix}", [MINOR]
+                    yield (f, folder / target_dir / f"{safe_filename(title)}{f.suffix}",
+                           ([COLLISION] if name != f.stem else []) + ([MINOR] if title != name else []))
             continue
-        if not is_video(p) or is_plex_inline_extra(p.stem):
+        if not is_video(p):
             continue
-        if EPISODE_TAG.search(p.stem):
-            new, problems = normalize_episode(p.stem)
+        name = strip_collision_suffix(p.stem)  # "Show - s01e01 - Pilot_2" is "Show - s01e01 - Pilot"
+        numbered = [COLLISION] if name != p.stem else []
+        if OLD_TRAILER.fullmatch(name):  # "Show (1998) - S01 - Pilot-trailer" in the season folder
+            yield p, season_trailer(folder, show, old_trailer_title(name, show), p.suffix), [TRAILER_MOVED]
+            continue
+        if is_plex_inline_extra(name):
+            if numbered:
+                yield p, folder / f"{name}{p.suffix}", numbered
+            continue
+        if EPISODE_TAG.search(name):
+            label = show_label(folder, show)
+            rest = strip_show(name, show)  # "Show (1998) - s01e01 - Pilot" -> "s01e01 - Pilot"
+            new_rest, problems = normalize_episode(rest)
+            new = f"{label} - {new_rest}" if EPISODE_TAG.match(new_rest) else new_rest
+            if not EPISODE_TAG.match(new_rest):
+                problems.append(f"does not start with the show name; it should start '{label} - '")
             target = folder / f"{new}{p.suffix}"
             if new != p.stem:
-                yield p, target, episode_changes(p.stem, new)
+                yield p, target, list(dict.fromkeys(
+                    numbered + prefix_change(name, label) + (episode_changes(rest, new_rest) if new_rest != rest else [])))
             for problem in problems:
                 yield target, None, problem
             continue
-        stem = tidy(p.stem)
+        stem = tidy(name)
         if extra := classify_extra(stem, show):
-            yield p, folder / extra[0] / f"{safe_filename(extra[1])}{p.suffix}", [f"extra moved to {extra[0]}"]
+            if extra[0] == "Trailers":
+                yield p, season_trailer(folder, show, extra[1], p.suffix), [TRAILER_MOVED]
+            else:
+                yield p, folder / extra[0] / f"{safe_filename(extra[1])}{p.suffix}", [f"extra moved to {extra[0]}"]
+            continue
+        rest = tidy(strip_show(name, show))  # "Show - 2013-08-12 - Title" -> "2013-08-12 - Title"
+        if DATE_START.match(rest) and not ODD_TAG.search(rest):
+            # Date-based episode: the show's year goes on the show name so Plex can match the show.
+            label = show_label(folder, show)
+            stem = f"{label} - {rest}"
+            if stem != p.stem:
+                tidied = rest != strip_show(name, show)
+                yield p, folder / f"{stem}{p.suffix}", list(dict.fromkeys(
+                    numbered + prefix_change(name, label) + ([MINOR] if tidied else [])))
             continue
         target = folder / f"{stem}{p.suffix}"
         if stem != p.stem:
-            yield p, target, [MINOR]
+            yield p, target, numbered + ([MINOR] if stem != name else [])
         if ODD_TAG.search(stem):
             yield target, None, "season/episode not in s##e## form"
         elif not DATE_EPISODE.fullmatch(stem):
             yield target, None, "not an episode or a recognized extra"
+        else:
+            yield target, None, (f"does not start with the show name; it should start "
+                                 f"'{show_label(folder, show)} - '")
+    yield from show_trailers(folder, show)
 
 
 def seasons_in(path: Path) -> list[Path]:
@@ -251,24 +360,49 @@ def seasons_in(path: Path) -> list[Path]:
     seasons = [d for d in children if SEASON_FOLDER.fullmatch(d.name)]
     if seasons:
         return seasons
-    return [s for d in children for s in sorted(x for x in d.iterdir() if x.is_dir() and SEASON_FOLDER.fullmatch(x.name))]
+    return [s for d in children if not plex_folder(d.name)  # not a show's "Trailers/Season 01"
+            for s in sorted(x for x in d.iterdir() if x.is_dir() and SEASON_FOLDER.fullmatch(x.name))]
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("folder", help="season, show or library folder")
+    parser.add_argument("folder", help="season, show or library folder; with --movies, the movie library "
+                                       "or a folder of trailers and bonus material")
     parser.add_argument("--show", help="show name (default: the season folder's parent, without the year)")
+    parser.add_argument("--movies", metavar="MOVIES_ROOT",
+                        help="check movies instead of TV: the movie library folder that holds one folder per movie")
+    parser.add_argument("--tv", metavar="TV_ROOT", help="with --movies: the TV library, so a TV show's trailer "
+                                                        "named with its season ('Show S5 - Trailer') moves there")
+    parser.add_argument("--corrections", metavar="FILE",
+                        help="with --movies: typos and release years to fix (default data/movie_corrections.json)")
+    parser.add_argument("--tiny-seconds", type=float, default=10,
+                        help="with --movies: raw rips shorter than this go to '_Tiny clips' (default 10; 0 = off)")
+    parser.add_argument("--collision-suffix", metavar="REGEX", default=DEFAULT_COLLISION_SUFFIX,
+                        help="how copies were numbered to dodge a name clash, removed from the end of names "
+                             r"(default '_\d{1,5}', as in 'Title_2.mkv'; e.g. ' \(\d+\)' for 'Title (2).mkv'; "
+                             "'' to keep them)")
     parser.add_argument("--apply", action="store_true", help="actually rename (default is a dry run)")
     args = parser.parse_args()
+    set_collision_suffix(args.collision_suffix)
 
     root = Path(args.folder)
     if not root.is_dir():
         parser.error(f"not a folder: {root}")
+    if args.movies:
+        import movie_names  # imports this module, so loaded only when needed
+        movies = Path(args.movies)
+        if not movies.is_dir():
+            parser.error(f"not a folder: {movies}")
+        if args.corrections and not Path(args.corrections).is_file():
+            parser.error(f"corrections file not found: {args.corrections}")
+        corrections = movie_names.load_corrections(Path(args.corrections) if args.corrections else None)
+        movie_names.run(root, movies, args.apply, corrections, Path(args.tv) if args.tv else None, args.tiny_seconds)
+        return
     seasons = seasons_in(root)
     if not seasons:
         parser.error(f"no season folders found in {root}")
 
-    fixes = reports = clashes = 0
+    fixes = reports = clashes = failed = 0
     kinds: Counter[str] = Counter()
     no_year = [show for show in dict.fromkeys(s.parent for s in seasons) if not SHOW_YEAR.search(show.name)]
     if no_year:
@@ -294,42 +428,61 @@ def main() -> None:
                 clashes += 1
             else:
                 print(f"RENAME season folder  ({'; '.join(rename[1])})\n    -> {target.name}")
-                fixes += 1
-                kinds.update(rename[1])
-                if args.apply:
-                    season.rename(target)
-                    season = target
-                    findings = list(check_season(season, show))
+                error = try_move(season, target) if args.apply else None
+                if error:
+                    print(f"FAILED season folder  ({error})")
+                    failed += 1
+                else:
+                    fixes += 1
+                    kinds.update(rename[1])
+                    if args.apply:
+                        season = target
+                        findings = list(check_season(season, show))
+        rel = lambda path: Path(os.path.relpath(path, season))  # "..\Trailers\Season 01\Pilot.mkv" for a trailer
         renamed_dirs: dict[Path, Path] = {}
         taken = [t.as_posix().lower() for _, t, _ in findings if t]
         for source, target, reason in findings:
             if target is None:
-                print(f"CHECK  {source.relative_to(season)}  ({reason})")
+                print(f"CHECK  {rel(source)}  ({reason})")
                 reports += 1
                 continue
             source = renamed_dirs.get(source.parent, source.parent) / source.name
             same = source.as_posix().lower() == target.as_posix().lower()
+            if target.exists() and not same and source.is_file() and target.is_file() and same_content(source, target):
+                target, reason = season / "_duplicates" / source.name, [DUPLICATE]  # already there: a copy
             if (target.exists() and not same) or taken.count(target.as_posix().lower()) > 1:
-                print(f"SKIP   {source.relative_to(season)}  (would overwrite {target.relative_to(season)})")
+                print(f"SKIP   {rel(source)}  (would overwrite {rel(target)})")
                 clashes += 1
                 continue
-            print(f"RENAME {source.relative_to(season)}  ({'; '.join(reason)})\n    -> {target.relative_to(season)}")
+            print(f"RENAME {rel(source)}  ({'; '.join(reason)})\n    -> {rel(target)}")
+            if args.apply and (error := try_move(source, target)):
+                print(f"FAILED {rel(source)}  ({error})")
+                failed += 1
+                continue
             fixes += 1
             kinds.update(reason)
-            if args.apply:
-                target.parent.mkdir(exist_ok=True)
-                source.rename(target)
-                if target.is_dir():
-                    renamed_dirs[source] = target
+            if args.apply and target.is_dir():
+                renamed_dirs[source] = target
+        if args.apply:  # e.g. a Trailers folder whose trailers moved to the show's Trailers folder
+            for d in season.iterdir():
+                if d.is_dir() and plex_folder(d.name):
+                    remove_if_empty(d)
+            trailers = season.parent / "Trailers"
+            for d in trailers.iterdir() if trailers.is_dir() else []:  # "Trailers/Season 1" renamed "Season 01"
+                if d.is_dir() and SEASON_NUMBER.fullmatch(d.name):
+                    remove_if_empty(d)
         print()
 
     action = "Renamed" if args.apply else "Would rename"
     print(f"{action} {fixes}; {reports} to check by hand; {clashes} skipped (name taken).")
+    if failed:
+        print(f"{failed} could not be renamed (FAILED lines above), usually because another program has the "
+              f"file open (Plex, a player, Explorer's preview). Close it and run again.")
     if not args.apply and fixes:
         print("Run again with --apply to rename.")
     if kinds:
         print("\nBy kind of fix (a rename can count under more than one):")
-        order = [DATE_MOVED, TAG_FORMAT, MINOR, SEASON_PADDED, SEASON_YEAR, FOLDER_RENAMED]
+        order = [SHOW_PREFIX, DATE_MOVED, TAG_FORMAT, MINOR, COLLISION, DUPLICATE, SEASON_PADDED, SEASON_YEAR, FOLDER_RENAMED]
         for kind in order + sorted(k for k in kinds if k not in order):
             if kinds[kind]:
                 print(f"  {kinds[kind]:5}  {kind}")

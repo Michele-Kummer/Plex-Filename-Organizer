@@ -14,7 +14,7 @@ Runs as a dry run unless --apply is given.
 import argparse
 from pathlib import Path
 
-from plex_utils import durations, is_extras_folder, is_video, same_content
+from plex_utils import durations, is_extras_folder, is_video, remove_if_empty, same_content, try_move
 
 DUPLICATES_DIR = "_duplicates"
 
@@ -62,23 +62,27 @@ def main() -> None:
             print(f"ERROR target already exists: {t}")
         raise SystemExit(1)
 
-    dupes = sum(d for _, _, d in moves)
+    failed = []
     for src, target, dup in moves:
         print(f"{src.relative_to(root)}  ->  {target.relative_to(root)}")
-        if args.apply:
-            target.parent.mkdir(exist_ok=True)
-            src.rename(target)
+        if args.apply and (error := try_move(src, target)):
+            print(f"  FAILED ({error})")
+            failed.append((src, dup))
+    dupes = sum(d for _, _, d in moves) - sum(d for _, d in failed)
 
     removed = []
     if args.apply:
         for d in sorted((p for p in root.rglob("*") if p.is_dir() and p.name != DUPLICATES_DIR),
                         key=lambda p: len(p.parts), reverse=True):
-            if not any(d.iterdir()):
-                d.rmdir()
+            if remove_if_empty(d):
                 removed.append(d.name)
 
     action = "Moved" if args.apply else "Would move"
-    print(f"\n{action} {len(moves) - dupes} file(s) to the season folder and {dupes} copy(ies) to {DUPLICATES_DIR}.")
+    print(f"\n{action} {len(moves) - len(failed) - dupes} file(s) to the season folder and {dupes} copy(ies) "
+          f"to {DUPLICATES_DIR}.")
+    if failed:
+        print(f"{len(failed)} could not be moved (FAILED above), usually because another program has the file "
+              f"open (Plex, a player, Explorer's preview). Close it and run again.")
     if removed:
         print(f"Removed empty folders: {', '.join(removed)}")
     leftovers = [p for p in root.rglob("*") if p.is_file() and p.parent != root and not skipped(p)]

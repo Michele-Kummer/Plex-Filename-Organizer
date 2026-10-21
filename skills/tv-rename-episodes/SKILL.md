@@ -1,6 +1,6 @@
 ---
 name: tv-rename-episodes
-description: Rename the videos in a TV season folder for Plex using that season's episode guide (titles and air dates looked up online), e.g. "Show - s03e01 - Title [2000-06-04].mkv", and name short clips as trailers. Use when the user asks to rename a season's files from the episode guide, Google, Wikipedia or TVDB, or to name disc rips like title_t00.mkv. Works for any show and season.
+description: Rename the videos in a TV season folder for Plex using that season's episode guide (titles and air dates looked up online), e.g. "Show (1998) - s03e01 - Title [2000-06-04].mkv", and put short clips in the show's Trailers/Season ## folder. Use when the user asks to rename a season's files from the episode guide, Google, Wikipedia or TVDB, or to name disc rips like title_t00.mkv. Works for any show and season.
 ---
 
 # Rename a season from its episode guide
@@ -8,8 +8,8 @@ description: Rename the videos in a TV season folder for Plex using that season'
 Result format (date in brackets at the end, same as the rest of the library):
 
 ```
-<Show> - s<SS>e<EE> - <Title> [<YYYY-MM-DD>].<ext>
-Trailers/<Episode title>.<ext>     (inside the season folder)
+<Show (Year)>/Season <SS>/<Show (Year)> - s<SS>e<EE> - <Title> [<YYYY-MM-DD>].<ext>
+<Show (Year)>/Trailers/Season <SS>/<Episode title>.<ext>     (no show name: the folders give it)
 ```
 
 ## Steps
@@ -52,17 +52,22 @@ Trailers/<Episode title>.<ext>     (inside the season folder)
      (default 15) become the missing episodes in order. Use `--first N` if the first file is
      not the first missing episode. Long videos left over once the guide runs out become
      `Other/Season N Bonus NN`, and so do files passed with `--bonus`.
-   - Extras go in Plex extras folders inside the season folder (`Trailers`, `Behind The Scenes`,
+   - Episode names always start with the show and its year, `Show (Year) - s03e01 - ...`.
+   - Trailers go in the show's Trailers folder, by season: `Show (Year)/Trailers/Season 03/Title.mkv`
+     (`.../Season 03/Season 3 Trailer.mkv` when it has no title). Keep the show name off trailer names.
+     Other extras go in Plex extras folders inside the season folder (`Behind The Scenes`,
      `Deleted Scenes`, `Featurettes`, `Interviews`, `Scenes`, `Shorts`, `Other`). Never name an
      extra `Show - Title - Trailer.mkv`: Plex does not recognize a space after the hyphen.
-   - Short clips: when there is one per episode, clip N becomes `Trailers/<episode title>`.
+   - Short clips: when there is one per episode, clip N becomes
+     `Trailers/Season 03/<episode title>`.
      Otherwise they are numbered. `--number-extras` forces numbering, and `--extra-type` picks
      another folder. When there are more clips than episodes, list them in disc order with
      durations: if the first ones are one trailer per episode (similar lengths, followed by
      different clips), ask the user and use `--trailers-first`, which puts the rest in `Other`.
      Clips the script numbered earlier are renamed again on a rerun.
    - Files in extras folders and names in Plex's own format (`... - Scene 16-deleted.mkv`) are
-     left alone. Old-style `... - Trailer.mkv` names are moved into the matching folder;
+     left alone. Old-style `... - Trailer.mkv` names are renamed the same way (other types are
+     moved into the matching folder);
      `--extras-only` does only that.
    - `--show` and `--season` override what the script reads from the folder path.
 

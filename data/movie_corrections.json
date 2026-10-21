@@ -1,0 +1,38 @@
+{
+  "_about": "Fixes check_names.py --movies applies to movie folder and file names. 'words': misspelled word -> right spelling, anywhere in a name. 'movies': title as written (typos above already fixed; case, spaces and a leading 'The' don't matter) -> the title and release year Plex's movie database uses. Plex matches movies by title and release year, so a DVD or box-set year in a name can match the wrong movie or none.",
+  "words": {
+    "Dalmations": "Dalmatians",
+    "Cinderlla": "Cinderella",
+    "Rembering": "Remembering",
+    "Suess": "Seuss",
+    "Unreated": "Unrated"
+  },
+  "movies": {
+    "Castaway": "Cast Away (2000)",
+    "101 Dalmatians II Patch's London Adventure": "101 Dalmatians II Patch's London Adventure (2003)",
+    "Cinderella II Dreams Come True": "Cinderella II Dreams Come True (2002)",
+    "Lady and the Tramp II Scamp's Adventure": "Lady and the Tramp II Scamp's Adventure (2001)",
+    "jackassthe movie": "Jackass The Movie (2002)",
+    "Matrix Reloaded": "The Matrix Reloaded (2003)",
+    "Matrix Revolutions": "The Matrix Revolutions (2003)",
+    "American Pie 2": "American Pie 2 (2001)",
+    "Aladdin The Return of Jafar": "Aladdin The Return of Jafar (1994)",
+    "Beauty and the Beast The Enchanted Christmas": "Beauty and the Beast The Enchanted Christmas (1997)",
+    "Finding Nemo": "Finding Nemo (2003)",
+    "Shark Tale": "Shark Tale (2004)",
+    "Chicago": "Chicago (2002)",
+    "Gremlins": "Gremlins (1984)",
+    "Lilo and Stitch": "Lilo and Stitch (2002)",
+    "Coyote Ugly": "Coyote Ugly (2000)",
+    "The Cat in the Hat": "The Cat in the Hat (2003)",
+    "Antitrust": "Antitrust (2001)",
+    "Tigerland": "Tigerland (2000)",
+    "Free Willy Escape from Pirates Cove": "Free Willy Escape from Pirate's Cove (2010)",
+    "Robots": "Robots (2005)",
+    "Shrek": "Shrek (2001)",
+    "The Smurfs": "The Smurfs (2011)",
+    "Tomb Raider": "Lara Croft Tomb Raider (2001)",
+    "Good Morning Vietnam": "Good Morning, Vietnam (1987)",
+    "The Care Bear Movie": "The Care Bears Movie (1985)"
+  }
+}

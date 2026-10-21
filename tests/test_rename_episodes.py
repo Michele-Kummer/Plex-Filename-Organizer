@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -27,8 +28,9 @@ class RenameEpisodesTests(SeasonTestCase):
                              lengths=lengths)
 
     def files(self) -> list[str]:
-        """Every file in the season folder, as paths relative to it."""
-        return sorted(p.relative_to(self.season).as_posix() for p in self.season.rglob("*") if p.is_file())
+        """Every file in the show folder, as paths relative to the season folder ('../Trailers/Season 02/Pilot.mkv')."""
+        return sorted(Path(os.path.relpath(p, self.season)).as_posix()
+                      for p in self.season.parent.rglob("*") if p.is_file())
 
     def test_names_disc_rips_and_trailers(self):
         lengths = {}
@@ -40,12 +42,12 @@ class RenameEpisodesTests(SeasonTestCase):
             lengths[f"Disc 01 - title_t0{t + 2}.mkv"] = CLIP
         self.rename("--apply", lengths=lengths)
         self.assertEqual(self.files(), sorted([
-            "Test Show - s02e01 - Pilot [2002-01-01].mkv",
-            "Test Show - s02e02 - Part - Two [2002-01-08].mkv",
-            "Test Show - s02e03 - Three....mkv",
-            "Trailers/Pilot.mkv",
-            "Trailers/Part - Two.mkv",
-            "Trailers/Three....mkv",
+            "Test Show (2001) - s02e01 - Pilot [2002-01-01].mkv",
+            "Test Show (2001) - s02e02 - Part - Two [2002-01-08].mkv",
+            "Test Show (2001) - s02e03 - Three....mkv",
+            "../Trailers/Season 02/Pilot.mkv",
+            "../Trailers/Season 02/Part - Two.mkv",
+            "../Trailers/Season 02/Three....mkv",
         ]))
 
     def test_disc_order_is_numeric(self):
@@ -54,7 +56,7 @@ class RenameEpisodesTests(SeasonTestCase):
             self.make(name)
         out = self.rename(lengths=lengths)
         self.assertLess(out.index("Disc 1 - a.mkv"), out.index("Disc 2 - a.mkv"))
-        self.assertIn("Disc 10 - a.mkv  (30:00)\n  -> Test Show - s02e03", out)
+        self.assertIn("Disc 10 - a.mkv  (30:00)\n  -> Test Show (2001) - s02e03", out)
 
     def test_dry_run_changes_nothing(self):
         self.make("rip.mkv")
@@ -64,21 +66,21 @@ class RenameEpisodesTests(SeasonTestCase):
 
     def test_tagged_files_get_guide_title(self):
         self.make("Test Show - S02E02 - old name.mp4")
-        self.make("Test Show - s02e01 - Pilot [2002-01-01].mkv")
+        self.make("Test Show (2001) - s02e01 - Pilot [2002-01-01].mkv")
         out = self.rename("--apply")
-        self.assertIn("Test Show - s02e02 - Part - Two [2002-01-08].mp4", self.names())
+        self.assertIn("Test Show (2001) - s02e02 - Part - Two [2002-01-08].mp4", self.names())
         self.assertIn("1 already correct", out)
 
     def test_untagged_fill_missing_episodes(self):
         self.make("Test Show - s02e01 - Pilot [2002-01-01].mkv")
         self.make("rip.mkv")
         self.rename("--apply", lengths={"rip.mkv": EPISODE})
-        self.assertIn("Test Show - s02e02 - Part - Two [2002-01-08].mkv", self.names())
+        self.assertIn("Test Show (2001) - s02e02 - Part - Two [2002-01-08].mkv", self.names())
 
     def test_first_option(self):
         self.make("rip.mkv")
         out = self.rename("--first", "3", "--apply", lengths={"rip.mkv": EPISODE})
-        self.assertEqual(self.names(), ["Test Show - s02e03 - Three....mkv"])
+        self.assertEqual(self.names(), ["Test Show (2001) - s02e03 - Three....mkv"])
         self.assertNotIn("WARNING", out)
 
     def test_reports_episodes_with_no_file(self):
@@ -94,9 +96,9 @@ class RenameEpisodesTests(SeasonTestCase):
         out = self.rename("--apply", lengths=lengths)
         self.assertIn("the last 2 become bonus extras", out)
         self.assertEqual(self.files(), sorted([
-            "Test Show - s02e01 - Pilot [2002-01-01].mkv",
-            "Test Show - s02e02 - Part - Two [2002-01-08].mkv",
-            "Test Show - s02e03 - Three....mkv",
+            "Test Show (2001) - s02e01 - Pilot [2002-01-01].mkv",
+            "Test Show (2001) - s02e02 - Part - Two [2002-01-08].mkv",
+            "Test Show (2001) - s02e03 - Three....mkv",
             "Other/Season 2 Bonus 01.mkv",
             "Other/Season 2 Bonus 02.mkv",
         ]))
@@ -107,11 +109,11 @@ class RenameEpisodesTests(SeasonTestCase):
             self.make(name)
         self.rename("--bonus", "rip1.mkv", "--bonus", "RIP3.mkv", "--apply", lengths=lengths)
         self.assertEqual(self.files(), sorted([
-            "Test Show - s02e01 - Pilot [2002-01-01].mkv",
+            "Test Show (2001) - s02e01 - Pilot [2002-01-01].mkv",
             "Other/Season 2 Bonus 01.mkv",
-            "Test Show - s02e02 - Part - Two [2002-01-08].mkv",
+            "Test Show (2001) - s02e02 - Part - Two [2002-01-08].mkv",
             "Other/Season 2 Bonus 02.mkv",
-            "Test Show - s02e03 - Three....mkv",
+            "Test Show (2001) - s02e03 - Three....mkv",
         ]))
 
     def test_unknown_bonus_file_is_an_error(self):
@@ -126,27 +128,30 @@ class RenameEpisodesTests(SeasonTestCase):
             self.make(name)
         self.rename("--trailers-first", "--apply", lengths=lengths)
         self.assertEqual(self.files(), sorted([
-            "Test Show - s02e01 - Pilot [2002-01-01].mkv",
-            "Test Show - s02e02 - Part - Two [2002-01-08].mkv",
-            "Test Show - s02e03 - Three....mkv",
-            "Trailers/Pilot.mkv",
-            "Trailers/Part - Two.mkv",
-            "Trailers/Three....mkv",
+            "Test Show (2001) - s02e01 - Pilot [2002-01-01].mkv",
+            "Test Show (2001) - s02e02 - Part - Two [2002-01-08].mkv",
+            "Test Show (2001) - s02e03 - Three....mkv",
+            "../Trailers/Season 02/Pilot.mkv",
+            "../Trailers/Season 02/Part - Two.mkv",
+            "../Trailers/Season 02/Three....mkv",
             "Other/Season 2 Extra 01.mkv",
             "Other/Season 2 Extra 02.mkv",
         ]))
 
     def test_rerun_renames_clips_numbered_earlier(self):
-        names = [f"Trailers/Season 2 Extra {i:02d}.mkv" for i in range(1, 4)]
-        names.append("Test Show - Season 2 Extra 04 - Trailer.mkv")  # numbered inline by an older version
+        names = [f"Trailers/Season 2 Extra {i:02d}.mkv" for i in range(1, 3)]  # numbered by older versions
+        names.append("Test Show - Season 2 Extra 04 - Trailer.mkv")
+        names.append("Test Show (2001) - S02 - Extra 03-trailer.mkv")
+        names.append("../Trailers/Season 02/Season 2 Trailer 05.mkv")  # numbered by this version
         for name in names:
             self.make(name)
         self.rename("--trailers-first", "--apply", lengths={Path(n).name: CLIP for n in names})
         self.assertEqual(self.files(), sorted([
-            "Trailers/Pilot.mkv",
-            "Trailers/Part - Two.mkv",
-            "Trailers/Three....mkv",
+            "../Trailers/Season 02/Pilot.mkv",
+            "../Trailers/Season 02/Part - Two.mkv",
+            "../Trailers/Season 02/Three....mkv",
             "Other/Season 2 Extra 01.mkv",
+            "Other/Season 2 Extra 02.mkv",
         ]))
 
     def test_rerun_leaves_finished_names_alone(self):
@@ -167,20 +172,20 @@ class RenameEpisodesTests(SeasonTestCase):
         self.make("Test Show - s02e01 - Pilot [2002-01-01].mkv")
         self.rename("--apply")
         self.assertEqual(self.files(), sorted([
-            "Trailers/Catch-38 (Version 2).mkv",
+            "../Trailers/Season 02/Catch-38 (Version 2).mkv",
             "Featurettes/Bloopers.mkv",
             "Behind The Scenes/Tribute.mkv",
             "Other/Season 2 Bonus 01.mkv",
-            "Test Show - s02e01 - Pilot [2002-01-01].mkv",
+            "Test Show (2001) - s02e01 - Pilot [2002-01-01].mkv",
         ]))
 
     def test_plex_named_episode_extras_left_alone(self):
         self.make("Test Show - s02e01 - Pilot [2002-01-01].mkv")
         self.make("Test Show - s02e01 - Pilot - Alternate Ending 1-deleted.mkv")
         out = self.rename("--apply")
-        self.assertEqual(self.files(), ["Test Show - s02e01 - Pilot - Alternate Ending 1-deleted.mkv",
-                                        "Test Show - s02e01 - Pilot [2002-01-01].mkv"])
-        self.assertIn("Renamed 0 file(s)", out)
+        self.assertEqual(self.files(), ["Test Show (2001) - s02e01 - Pilot [2002-01-01].mkv",
+                                        "Test Show - s02e01 - Pilot - Alternate Ending 1-deleted.mkv"])
+        self.assertIn("Renamed 1 file(s)", out)  # only the episode, which gains the year
 
     def test_extras_only_moves_extras_and_leaves_episodes(self):
         self.guide.unlink()  # not needed
@@ -188,8 +193,8 @@ class RenameEpisodesTests(SeasonTestCase):
         self.make("Test Show - Pilot - Trailer.mkv")
         self.make("rip.mkv")
         self.rename("--extras-only", "--apply")
-        self.assertEqual(self.files(), ["Test Show - s02e01 - My Own Title [2002-01-01].mkv",
-                                        "Trailers/Pilot.mkv", "rip.mkv"])
+        self.assertEqual(self.files(), ["../Trailers/Season 02/Pilot.mkv",
+                                        "Test Show - s02e01 - My Own Title [2002-01-01].mkv", "rip.mkv"])
 
     def test_unknown_extra_type_is_an_error(self):
         with self.assertRaises(SystemExit), mock.patch("sys.stderr", io.StringIO()) as err:
@@ -201,7 +206,7 @@ class RenameEpisodesTests(SeasonTestCase):
         for name in lengths:
             self.make(name)
         out = self.rename("--apply", lengths=lengths)
-        self.assertEqual(self.files(), ["Trailers/Season 2 Extra 01.mkv", "Trailers/Season 2 Extra 02.mkv"])
+        self.assertEqual(self.files(), ["../Trailers/Season 02/Season 2 Trailer 01.mkv", "../Trailers/Season 02/Season 2 Trailer 02.mkv"])
         self.assertIn("so they were numbered", out)
 
     def test_number_extras_and_extra_type(self):
@@ -222,13 +227,13 @@ class RenameEpisodesTests(SeasonTestCase):
         self.make("big.mkv", size=1000)
         self.make("small.mkv", size=10)
         self.rename("--number-extras", "--apply")
-        self.assertIn("Test Show - s02e01 - Pilot [2002-01-01].mkv", self.names())
-        self.assertIn("Trailers/Season 2 Extra 01.mkv", self.files())
+        self.assertIn("Test Show (2001) - s02e01 - Pilot [2002-01-01].mkv", self.names())
+        self.assertIn("../Trailers/Season 02/Season 2 Trailer 01.mkv", self.files())
 
     def test_show_and_season_overrides(self):
         self.make("rip.mkv")
         self.rename("--show", "Other: Show", "--season", "7", "--apply", lengths={"rip.mkv": EPISODE})
-        self.assertEqual(self.names(), ["Other - Show - s07e01 - Pilot [2002-01-01].mkv"])
+        self.assertEqual(self.names(), ["Other - Show (2001) - s07e01 - Pilot [2002-01-01].mkv"])
 
     def test_refuses_to_overwrite(self):
         self.make("Test Show - s02e01 - Pilot [2002-01-01].mkv")
@@ -253,7 +258,7 @@ class RenameEpisodesTests(SeasonTestCase):
         self.guide.write_text(json.dumps(GUIDE), encoding="utf-8-sig")
         self.make("rip.mkv")
         self.rename("--apply", lengths={"rip.mkv": EPISODE})
-        self.assertEqual(self.names(), ["Test Show - s02e01 - Pilot [2002-01-01].mkv"])
+        self.assertEqual(self.names(), ["Test Show (2001) - s02e01 - Pilot [2002-01-01].mkv"])
 
     def test_season_from_folder_required(self):
         folder = self.tmp / "Loose Files"
@@ -269,7 +274,7 @@ class RenameEpisodesTests(SeasonTestCase):
                                 lengths={"rip.mkv": EPISODE})
         fetch.assert_called_once_with("Test Show", 2, 2001)
         self.assertIn("TVmaze, Test Show (2001) season 2", out)
-        self.assertEqual(self.names(), ["Test Show - s02e01 - Pilot [2002-01-01].mkv"])
+        self.assertEqual(self.names(), ["Test Show (2001) - s02e01 - Pilot [2002-01-01].mkv"])
         self.assertEqual(json.loads(saved.read_text(encoding="utf-8")), GUIDE)
 
     def test_download_failure_is_a_clear_error(self):
