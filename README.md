@@ -383,4 +383,6 @@ data/                       Data the scripts read
   movie_corrections.json      Typos and release years for movie names
 tests/                      Unit tests for the scripts and helpers
 docs/                       Project notes
+  project-cheatsheet.md       PowerShell steps in order
+  user-stories-and-bugs.md    Requirements as user stories, and every known bug
 ```
