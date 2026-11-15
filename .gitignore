@@ -1,3 +1,6 @@
+# Photo editing files
+*.psd
+
 # Audit outputs
 *.xlsx
 
