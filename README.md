@@ -34,6 +34,8 @@ Plex, a player or Explorer's preview pane) is reported as `FAILED` and the run c
 rest; close the program and run it again to pick those up. You can run them yourself, or install
 the Claude Code plugin and ask Claude to organize a season.
 
+**How the work is tracked:** the requirements, user stories and bugs are on the [project board](https://github.com/users/Michele-Kummer/projects/2) and in [GitHub Issues](https://github.com/Michele-Kummer/Plex-Filename-Organizer/issues), each with the date it was opened and closed.
+
 ## Quick start with Claude Code
 
 Install the plugin from GitHub:
