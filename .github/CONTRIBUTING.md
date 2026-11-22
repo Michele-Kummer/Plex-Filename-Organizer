@@ -35,7 +35,7 @@ All work is tracked in [GitHub Issues](https://github.com/Michele-Kummer/Plex-Fi
 python -m unittest discover -s tests
 ```
 
-The tests use temporary folders of small dummy files and fixed video lengths, so they never need real videos. In Claude Code, `/run-tests` runs them and explains any failures. Run them before every pull request.
+The tests use temporary folders of small dummy files and fixed video lengths, so they never need real videos. In Claude Code, `/run-tests` runs them and explains any failures. Run them before every pull request. GitHub also runs them on Windows, with Python 3.10 and 3.12, for every push and pull request, and the badge at the top of the README shows the latest result.
 
 ## Rules for changes
 

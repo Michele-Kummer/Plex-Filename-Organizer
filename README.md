@@ -1,5 +1,7 @@
 # Plex-Filename-Organizer
 
+[![Tests](https://github.com/Michele-Kummer/Plex-Filename-Organizer/actions/workflows/tests.yml/badge.svg)](https://github.com/Michele-Kummer/Plex-Filename-Organizer/actions/workflows/tests.yml)
+
 Python scripts that tidy TV show folders for [Plex](https://www.plex.tv/). They turn raw disc rips
 and inconsistent names into Plex-friendly names with the air date at the end:
 

@@ -36,6 +36,10 @@ class CommunityFileTests(unittest.TestCase):
         self.assertIn('not covered by the MIT license', readme)
         self.assertIn('docs/branding/', (ROOT / '.gitignore').read_text(encoding='utf-8').splitlines())
 
+    def test_readme_shows_the_tests_badge(self):
+        self.assertIn('/actions/workflows/tests.yml/badge.svg', (ROOT / 'README.md').read_text(encoding='utf-8'))
+        self.assertTrue((ROOT / '.github/workflows/tests.yml').is_file())
+
     def test_code_of_conduct_has_a_contact_and_no_placeholders(self):
         text = (ROOT / '.github/CODE_OF_CONDUCT.md').read_text(encoding='utf-8')
         self.assertNotIn('INSERT', text)
