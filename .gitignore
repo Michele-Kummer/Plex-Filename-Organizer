@@ -24,3 +24,7 @@ sample-data/private/
 
 # Working plan for importing the user stories and bugs into GitHub Issues (local only)
 docs/github-import-order.md
+
+# Logo and social preview images stay on this computer. The README loads the logo from
+# the Michele-Kummer profile repository, so no logo file is under this repo's MIT license.
+docs/branding/

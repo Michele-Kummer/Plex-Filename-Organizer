@@ -420,7 +420,12 @@ MIT. See [LICENSE](LICENSE).
 ---
 
 <p align="center">
-  <img src="docs/branding/SkyOrbitLogo.svg" alt="SK | SkyOrbit logo: a circle crossed by an orbit, with a star at the top right, above the words SK SkyOrbit" width="90">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Michele-Kummer/Michele-Kummer/main/images/SkyOrbitLogoBlue.svg">
+    <img src="https://raw.githubusercontent.com/Michele-Kummer/Michele-Kummer/main/images/SkyOrbitLogo.gif" alt="SK | SkyOrbit logo: a circle crossed by an orbit, with a star at the top right, above the words SK SkyOrbit" width="110">
+  </picture>
   <br>
   Built by <strong>SK | SkyOrbit</strong>, Michele Kummer
 </p>
+
+The SK | SkyOrbit name and logo are not covered by the MIT license.

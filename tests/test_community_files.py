@@ -28,9 +28,13 @@ class CommunityFileTests(unittest.TestCase):
     def test_license_and_logo(self):
         self.assertIn('Copyright (c) 2026 SK | SkyOrbit', (ROOT / 'LICENSE').read_text(encoding='utf-8'))
         readme = (ROOT / 'README.md').read_text(encoding='utf-8')
-        # The README shows the full-colour logo, in light and dark mode alike
-        self.assertIn('src="docs/branding/SkyOrbitLogo.svg"', readme)
-        self.assertNotIn('SkyOrbitLogoDark', readme)
+        # The README loads the animated logo, and the Blue logo in dark mode, from the profile
+        # repository, and keeps no logo file here, so none is under this repo's MIT license
+        base = 'https://raw.githubusercontent.com/Michele-Kummer/Michele-Kummer/main/images'
+        self.assertIn(f'src="{base}/SkyOrbitLogo.gif"', readme)
+        self.assertIn(f'srcset="{base}/SkyOrbitLogoBlue.svg"', readme)
+        self.assertIn('not covered by the MIT license', readme)
+        self.assertIn('docs/branding/', (ROOT / '.gitignore').read_text(encoding='utf-8').splitlines())
 
     def test_code_of_conduct_has_a_contact_and_no_placeholders(self):
         text = (ROOT / '.github/CODE_OF_CONDUCT.md').read_text(encoding='utf-8')
