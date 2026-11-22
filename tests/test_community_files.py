@@ -27,9 +27,10 @@ class CommunityFileTests(unittest.TestCase):
 
     def test_license_and_logo(self):
         self.assertIn('Copyright (c) 2026 SK | SkyOrbit', (ROOT / 'LICENSE').read_text(encoding='utf-8'))
-        dark = (ROOT / 'docs/branding/SkyOrbitLogoDark.svg').read_text(encoding='utf-8')
-        self.assertNotIn('#18415e', dark)
-        self.assertIn('#ffffff', dark)
+        readme = (ROOT / 'README.md').read_text(encoding='utf-8')
+        # The README shows the full-colour logo, in light and dark mode alike
+        self.assertIn('src="docs/branding/SkyOrbitLogo.svg"', readme)
+        self.assertNotIn('SkyOrbitLogoDark', readme)
 
     def test_code_of_conduct_has_a_contact_and_no_placeholders(self):
         text = (ROOT / '.github/CODE_OF_CONDUCT.md').read_text(encoding='utf-8')
