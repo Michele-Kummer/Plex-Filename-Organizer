@@ -416,3 +416,14 @@ docs/                       Project notes
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+---
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/branding/SkyOrbitLogoDark.svg">
+    <img src="docs/branding/SkyOrbitLogo.svg" alt="SK | SkyOrbit logo: a circle crossed by an orbit, with a star at the top right, above the words SK SkyOrbit" width="90">
+  </picture>
+  <br>
+  Built by <strong>SK | SkyOrbit</strong>, Michele Kummer
+</p>

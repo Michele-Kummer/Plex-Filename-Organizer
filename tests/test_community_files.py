@@ -19,10 +19,17 @@ class CommunityFileTests(unittest.TestCase):
     def test_relative_links_point_at_real_files(self):
         for name in FILES + ['README.md']:
             path = ROOT / name
-            for target in re.findall(r'\]\(([^)\s]+)\)', path.read_text(encoding='utf-8')):
+            text = path.read_text(encoding='utf-8')
+            for target in re.findall(r'\]\(([^)\s]+)\)', text) + re.findall(r'(?:src|srcset)="([^"]+)"', text):
                 if re.match(r'[a-z]+:|#', target):
                     continue
                 self.assertTrue((path.parent / target.split('#')[0]).exists(), f'{name} links to {target}')
+
+    def test_license_and_logo(self):
+        self.assertIn('Copyright (c) 2026 SK | SkyOrbit', (ROOT / 'LICENSE').read_text(encoding='utf-8'))
+        dark = (ROOT / 'docs/branding/SkyOrbitLogoDark.svg').read_text(encoding='utf-8')
+        self.assertNotIn('#18415e', dark)
+        self.assertIn('#ffffff', dark)
 
     def test_code_of_conduct_has_a_contact_and_no_placeholders(self):
         text = (ROOT / '.github/CODE_OF_CONDUCT.md').read_text(encoding='utf-8')
