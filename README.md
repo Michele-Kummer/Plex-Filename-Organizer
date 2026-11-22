@@ -366,9 +366,16 @@ Requirements and bugs are tracked in [GitHub Issues](https://github.com/Michele-
 - Each epic has its user stories and bugs as sub-issues, and each bug names the story it affects.
 - Titles start with the area, such as `Flatten:` or `Movies:`. Stories have the **Feature** issue type and bugs the **Bug** type, so the type filters work.
 - Labels give the epic, the priority (`P1: Critical` to `P4: Low`), a bug's severity (`S1: Blocker` to `S4: Trivial`) and who found it.
-- New issues use the **User story** and **Bug** forms, which keep the same layout.
+- New issues use the **User story**, **Bug** and **Task** forms, which keep the same layout.
 
 [docs/user-stories-and-bugs.md](docs/user-stories-and-bugs.md) is the record of how they were first gathered. `py tools/import_github_issues.py` created each one in GitHub with the dates it really opened and closed. It previews first, and creates issues only with `--apply`.
+
+## Contributing
+
+- [Contributing guide](.github/CONTRIBUTING.md): how to report a bug or ask for a feature, how the issues are organised, how to run the tests, the rules every change follows, and how to make a change through a pull request.
+- [Security policy](.github/SECURITY.md): what counts as a security problem and how to report one privately.
+- [Code of conduct](.github/CODE_OF_CONDUCT.md): the Contributor Covenant 2.1.
+- [Accessibility statement](docs/accessibility.md): how accessible the scripts and their docs are, the known limits, and how to report a problem.
 
 ## Project layout
 
@@ -396,9 +403,11 @@ data/                       Data the scripts read
   movie_corrections.json      Typos and release years for movie names
 tools/                      Project tools
   import_github_issues.py     Imported the user stories and bugs into GitHub Issues
-.github/ISSUE_TEMPLATE/     User story and Bug forms for new issues
+.github/                    Contributing guide, security policy and code of conduct
+  ISSUE_TEMPLATE/             User story, Bug and Task forms for new issues
 tests/                      Unit tests for the scripts, helpers and tools
 docs/                       Project notes
   project-cheatsheet.md       PowerShell steps in order
   user-stories-and-bugs.md    Requirements as user stories, and every known bug, as first gathered
+  accessibility.md            Accessibility statement
 ```
