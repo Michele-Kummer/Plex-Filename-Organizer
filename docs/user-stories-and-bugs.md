@@ -27,7 +27,7 @@ Each bug says what it **Affects**: episodes, extras, movies, or something else (
 | | Count |
 |---|---|
 | Epics | 8 |
-| User stories | 32 (29 Done, 3 Partly done) |
+| User stories | 32 (30 Done, 2 Partly done) |
 | Bugs | 9 (2 open, 7 resolved) |
 
 | Bugs found by | Open | Resolved | Total |
@@ -366,7 +366,7 @@ As a maintainer, I want every epic, user story and bug in GitHub Issues with the
 - It previews by default and changes nothing unless `--apply` is given. Run again, it skips issues already imported, and it stops if GitHub gives an issue a number other than the one planned.
 - `tests/test_import_github_issues.py` and `tests/test_issue_templates.py` cover it without contacting GitHub.
 
-**Status:** Partly done. The script is written, but the issues are not imported yet.
+**Status:** Done. Built in `ab0924e` and run on 2026-11-22, which created issues #1 to #49 and the project board.
 
 </details>
 
