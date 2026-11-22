@@ -1,0 +1,75 @@
+name: User story
+description: A requirement, written from the point of view of the person it is for.
+labels: ["user story"]
+type: Feature
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Give it a short title that names what the person can do, such as `Read the guide from a TVDB export`.
+        After you create it, add its epic's label and a priority label (`P1: Critical` to `P4: Low`), and add it to its epic as a sub-issue.
+  - type: dropdown
+    id: epic
+    attributes:
+      label: Epic
+      options:
+        - "Setup (#1)"
+        - "Safe changes (#2)"
+        - "Flatten disc rips (#3)"
+        - "Name episodes from the guide (#4)"
+        - "Check names across the TV library (#5)"
+        - "Movies (#6)"
+        - "Claude Code plugin (#7)"
+        - "Maintenance (#8)"
+    validations:
+      required: true
+  - type: dropdown
+    id: persona
+    attributes:
+      label: Who it is for
+      description: "TV series owner: seasons and their extras. Movie owner: the movie library. Video owner: both. Maintainer: whoever changes or tests the scripts."
+      options:
+        - TV series owner
+        - Movie owner
+        - Video owner
+        - Maintainer
+    validations:
+      required: true
+  - type: textarea
+    id: story
+    attributes:
+      label: User story
+      placeholder: "As a TV series owner, I want ..., so that ..."
+    validations:
+      required: true
+  - type: textarea
+    id: criteria
+    attributes:
+      label: Acceptance criteria
+      description: One bullet for each thing that must hold, saying how it behaves when it is done.
+      placeholder: |
+        - `--example` previews by default and renames files only with `--apply`.
+        - ...
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - "P1: Critical"
+        - "P2: High"
+        - "P3: Medium"
+        - "P4: Low"
+    validations:
+      required: true
+  - type: dropdown
+    id: status
+    attributes:
+      label: Status
+      description: "Done when every criterion holds. Partly done when some do not; say which in a comment."
+      options:
+        - Not started
+        - Partly done
+        - Done
+      default: 0

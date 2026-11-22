@@ -1,0 +1,73 @@
+name: Bug
+description: Something that gives a wrong result, stops, or loses a file.
+labels: ["bug"]
+type: Bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Give it a short title that says what goes wrong, such as `Flatten skips hidden disc folders`.
+        After you create it, add the severity label (`S1: Blocker` to `S4: Trivial`), a priority label (`P1: Critical` to `P4: Low`) and a `Found by` label.
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - "S1: Blocker (files are lost or the scripts can't be used)"
+        - "S2: Major (a wrong result, or a step that fails or stops)"
+        - "S3: Minor (a problem with a workaround)"
+        - "S4: Trivial (cosmetic only)"
+    validations:
+      required: true
+  - type: dropdown
+    id: found_by
+    attributes:
+      label: Found by
+      options:
+        - Michele Kummer
+        - Claude
+        - Automated tests
+    validations:
+      required: true
+  - type: input
+    id: affects
+    attributes:
+      label: Affects
+      description: Episodes, extras, movies, or something else (setup, docs).
+      placeholder: episodes
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: The file and function, if known.
+      placeholder: "scripts/flatten_season.py `main`"
+  - type: textarea
+    id: cause
+    attributes:
+      label: What goes wrong
+      description: What happens and, if known, why.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+    validations:
+      required: true

@@ -7,6 +7,7 @@ This document records the requirements for **Plex-Filename-Organizer** as user s
 - **User stories:** written with Claude Code (Claude Opus 5.5) by reading the scripts, docs, tests and git history. Each story's acceptance criteria describe how the project behaves today.
 - **Open bugs:** found by Claude while writing the stories. Each one was reproduced on synthetic files.
 - **Resolved bugs:** taken from the git history. Michele Kummer, the project's author, confirmed finding BUG-02, BUG-03, BUG-04 and BUG-07. Who found the others is still to be confirmed.
+- **Updated 2026-11-22:** Michele Kummer chose to track stories and bugs in GitHub Issues instead of this file, set up the same way as media-date-organizer (US-32). From then on, new stories and bugs are tracked in [GitHub Issues](https://github.com/Michele-Kummer/Plex-Filename-Organizer/issues), and this file is kept as the record of how the requirements were gathered.
 
 **Status** on each story is *Done* when every criterion holds, or *Partly done* when some do not, with the gap named.
 
@@ -26,7 +27,7 @@ Each bug says what it **Affects**: episodes, extras, movies, or something else (
 | | Count |
 |---|---|
 | Epics | 8 |
-| User stories | 31 (29 Done, 2 Partly done) |
+| User stories | 32 (29 Done, 3 Partly done) |
 | Bugs | 9 (2 open, 7 resolved) |
 
 | Bugs found by | Open | Resolved | Total |
@@ -333,14 +334,14 @@ As a TV series owner, I want to ask for a single step ("flatten Season 04"), so 
 </details>
 
 <details>
-<summary><strong>Epic 8 — Maintenance</strong> (US-30 to US-31)</summary>
+<summary><strong>Epic 8 — Maintenance</strong> (US-30 to US-32)</summary>
 
 Keep the project easy to change safely.
 
 #### US-30 Run the tests with nothing to install
 As a maintainer, I want unit tests that need nothing but Python, so that anyone can run them.
 
-- `python -m unittest discover -s tests` runs 115 tests on temporary folders of dummy files, with fixed video lengths in place of ExifTool.
+- `python -m unittest discover -s tests` runs 150 tests on temporary folders of dummy files, with fixed video lengths in place of ExifTool.
 - `/run-tests` runs them and explains any failures.
 
 **Status:** Done
@@ -351,6 +352,21 @@ As a maintainer, I want the README, cheat sheet, skills and this file updated wi
 - Each feature commit so far updated the README, cheat sheet and skills.
 
 **Status:** Done
+
+#### US-32 Track stories and bugs in GitHub Issues
+As a maintainer, I want every epic, user story and bug in GitHub Issues with the dates it really opened and closed, filed the same way as in media-date-organizer, so that new work is tracked where the code lives and the history reads as if it had been kept there from the start.
+
+- `tools/import_github_issues.py` takes the order, dates and links from `docs/github-import-order.md`, a local plan that is not pushed, and the text of each issue from this file. It uses GitHub's Issue Import API, so each issue opens on the date it was built or found and closes at the time of the commit that built or fixed it.
+- Epics come first, then stories and bugs mixed by date. Titles start with the issue's area (`Flatten:`, `Guide:`, `Movies:`) and leave out the US and BUG numbers, which go in each issue's footer ("where it is US-07"). US and BUG numbers in the text link to their issues.
+- Stories have the **Feature** issue type and bugs the **Bug** type.
+- Labels: `epic`, `user story` or `bug`; the epic's name; `P1: Critical` to `P4: Low`; `S1: Blocker` to `S4: Trivial` on bugs; `Found by: Michele Kummer`, `Found by: Claude` or `Found by: To confirm` on bugs; and `In progress` on Partly done stories.
+- Each story and each bug is a sub-issue of its epic. A bug starts with the epic and the user story it affects.
+- Every issue is on the project board, with its status, priority and severity.
+- **New issue** offers a **User story** form and a **Bug** form in `.github/ISSUE_TEMPLATE/`, in the same layout.
+- It previews by default and changes nothing unless `--apply` is given. Run again, it skips issues already imported, and it stops if GitHub gives an issue a number other than the one planned.
+- `tests/test_import_github_issues.py` and `tests/test_issue_templates.py` cover it without contacting GitHub.
+
+**Status:** Partly done. The script is written, but the issues are not imported yet.
 
 </details>
 

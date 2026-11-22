@@ -21,3 +21,6 @@ desktop.ini
 
 # Don't commit user media accidentally
 sample-data/private/
+
+# Working plan for importing the user stories and bugs into GitHub Issues (local only)
+docs/github-import-order.md

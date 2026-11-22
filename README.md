@@ -357,6 +357,17 @@ folders of small dummy files and use fixed video lengths in place of ExifTool:
 python -m unittest discover -s tests
 ```
 
+## Stories and bugs
+
+Requirements and bugs are tracked in [GitHub Issues](https://github.com/Michele-Kummer/Plex-Filename-Organizer/issues) and on the [project board](https://github.com/users/Michele-Kummer/projects/2).
+
+- Each epic has its user stories and bugs as sub-issues, and each bug names the story it affects.
+- Titles start with the area, such as `Flatten:` or `Movies:`. Stories have the **Feature** issue type and bugs the **Bug** type, so the type filters work.
+- Labels give the epic, the priority (`P1: Critical` to `P4: Low`), a bug's severity (`S1: Blocker` to `S4: Trivial`) and who found it.
+- New issues use the **User story** and **Bug** forms, which keep the same layout.
+
+[docs/user-stories-and-bugs.md](docs/user-stories-and-bugs.md) is the record of how they were first gathered. `py tools/import_github_issues.py` created each one in GitHub with the dates it really opened and closed. It previews first, and creates issues only with `--apply`.
+
 ## Project layout
 
 ```
@@ -381,8 +392,11 @@ scripts/                    The Python scripts
   plex_utils.py               Shared helpers: video lengths, safe filenames, show and season from the path
 data/                       Data the scripts read
   movie_corrections.json      Typos and release years for movie names
-tests/                      Unit tests for the scripts and helpers
+tools/                      Project tools
+  import_github_issues.py     Imported the user stories and bugs into GitHub Issues
+.github/ISSUE_TEMPLATE/     User story and Bug forms for new issues
+tests/                      Unit tests for the scripts, helpers and tools
 docs/                       Project notes
   project-cheatsheet.md       PowerShell steps in order
-  user-stories-and-bugs.md    Requirements as user stories, and every known bug
+  user-stories-and-bugs.md    Requirements as user stories, and every known bug, as first gathered
 ```
