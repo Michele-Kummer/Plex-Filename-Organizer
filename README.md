@@ -420,10 +420,7 @@ MIT. See [LICENSE](LICENSE).
 ---
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Michele-Kummer/Michele-Kummer/main/images/SkyOrbitLogoBlue.svg">
-    <img src="https://raw.githubusercontent.com/Michele-Kummer/Michele-Kummer/main/images/SkyOrbitLogo.gif" alt="SK | SkyOrbit logo: a circle crossed by an orbit, with a star at the top right, above the words SK SkyOrbit" width="110">
-  </picture>
+  <img src="https://raw.githubusercontent.com/Michele-Kummer/Michele-Kummer/main/images/SkyOrbitLogo.gif" alt="SK | SkyOrbit logo: a circle crossed by an orbit, with a star at the top right, above the words SK SkyOrbit" width="110">
   <br>
   Built by <strong>SK | SkyOrbit</strong>, Michele Kummer
 </p>
