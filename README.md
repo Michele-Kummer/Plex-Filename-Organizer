@@ -380,6 +380,7 @@ Requirements and bugs are tracked in [GitHub Issues](https://github.com/Michele-
 ## Project layout
 
 ```
+LICENSE                     MIT license
 .claude-plugin/
   plugin.json               Plugin manifest: name, version, skills and commands
   marketplace.json          Lets this repo be added as a plugin marketplace
@@ -411,3 +412,7 @@ docs/                       Project notes
   user-stories-and-bugs.md    Requirements as user stories, and every known bug, as first gathered
   accessibility.md            Accessibility statement
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).
