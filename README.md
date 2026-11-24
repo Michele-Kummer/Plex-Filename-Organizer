@@ -365,7 +365,7 @@ python -m unittest discover -s tests
 
 Requirements and bugs are tracked in [GitHub Issues](https://github.com/Michele-Kummer/Plex-Filename-Organizer/issues) and on the [project board](https://github.com/users/Michele-Kummer/projects/2).
 
-- Each epic has its user stories and bugs as sub-issues, and each bug names the story it affects.
+- Each epic has its user stories and bugs as sub-issues, and each bug names the story it affects. An epic closes by itself once all of them are closed.
 - Titles start with the area, such as `Flatten:` or `Movies:`. Stories have the **Feature** issue type and bugs the **Bug** type, so the type filters work.
 - Labels give the epic, the priority (`P1: Critical` to `P4: Low`), a bug's severity (`S1: Blocker` to `S4: Trivial`) and who found it.
 - New issues use the **User story**, **Bug** and **Task** forms, which keep the same layout.
@@ -406,6 +406,7 @@ data/                       Data the scripts read
   movie_corrections.json      Typos and release years for movie names
 tools/                      Project tools
   import_github_issues.py     Imported the user stories and bugs into GitHub Issues
+  close_finished_epics.py     Closes an epic once all its stories and bugs are closed
 .github/                    Contributing guide, security policy and code of conduct
   ISSUE_TEMPLATE/             User story, Bug and Task forms for new issues
 tests/                      Unit tests for the scripts, helpers and tools

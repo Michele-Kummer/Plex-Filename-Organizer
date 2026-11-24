@@ -1,0 +1,32 @@
+name: Close finished epics
+
+# When an issue is closed, close its epic if every story and bug under the epic is closed.
+# Run it by hand from the Actions tab to preview what it would do for one issue.
+
+on:
+  issues:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Issue number to check
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  close:
+    name: Close the epic if it is finished
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the epic
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number || inputs.issue }}
+          APPLY: ${{ github.event_name == 'issues' && '--apply' || '' }}
+        run: python3 tools/close_finished_epics.py --repo "$REPO" --issue "$ISSUE" $APPLY

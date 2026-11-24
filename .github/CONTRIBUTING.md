@@ -17,7 +17,7 @@ For a security problem, don't open an issue. Follow the [security policy](SECURI
 
 All work is tracked in [GitHub Issues](https://github.com/Michele-Kummer/Plex-Filename-Organizer/issues) and on the [project board](https://github.com/users/Michele-Kummer/projects/2).
 
-- **Epics** group the work by area of the tool. Every user story and bug is a sub-issue of its epic, and each bug names the user story it affects.
+- **Epics** group the work by area of the tool. Every user story and bug is a sub-issue of its epic, and each bug names the user story it affects. When the last of them is closed, a GitHub workflow closes the epic.
 - **Titles** start with the area, such as `Flatten:`, `Guide:` or `Movies:`.
 - **Types:** stories have the **Feature** type and bugs the **Bug** type.
 - **Labels** give the epic, the priority (`P1: Critical` to `P4: Low`), a bug's severity (`S1: Blocker` to `S4: Trivial`), who found a bug (`Found by: …`), and `In progress` while someone is working on it.
