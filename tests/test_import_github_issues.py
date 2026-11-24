@@ -128,8 +128,8 @@ class PlanTests(unittest.TestCase):
 
     def test_labels(self):
         items = {i['id']: i for i in plan()}
-        self.assertEqual(items['Setup']['labels_full'], ['epic', 'Setup'])
-        self.assertEqual(items['US-02']['labels_full'], ['user story', 'Flatten disc rips', 'P2: High', 'In progress'])
+        self.assertEqual(items['Setup']['labels_full'], ['epic'])
+        self.assertEqual(items['US-02']['labels_full'], ['user story', 'P2: High'])
         self.assertEqual(items['BUG-01']['labels_full'], ['bug', 'P1: Critical', 'S1: Blocker', 'Found by: Claude'])
         self.assertEqual(items['BUG-02']['labels_full'],
                          ['bug', 'P3: Medium', 'S3: Minor', 'Found by: Michele Kummer'])
@@ -145,10 +145,6 @@ class PlanTests(unittest.TestCase):
         stories = STORIES.replace('**Found by:** Claude', '**Found by:** Someone else')
         with self.assertRaisesRegex(gi.PlanError, 'not one of the found-by labels'):
             gi.build_plan(PLAN, stories, REPO, commit_time=COMMITS.__getitem__)
-
-    def test_epic_labels_drop_commas_github_does_not_allow(self):
-        self.assertEqual(gi.label_name('Workflow, safety and record-keeping'), 'Workflow safety and record-keeping')
-        self.assertEqual(gi.label_name('Flatten disc rips'), 'Flatten disc rips')
 
     def test_closing_before_opening_is_refused(self):
         early = PLAN.replace('| 3 | 2026-10-06 09:02 |', '| 3 | 2026-10-06 11:30 |')
@@ -218,10 +214,10 @@ class BugLinkTests(unittest.TestCase):
         self.assertTrue(items['BUG-02']['body'].startswith('**Epic:** Setup (#1)\n\n'))
         self.assertNotIn('User story:', items['BUG-02']['body'])
 
-    def test_a_bug_gets_its_epic_label(self):
+    def test_a_bug_gets_no_epic_label(self):
         items = {i['id']: i for i in plan_with_bugs()}
         self.assertEqual(items['BUG-01']['labels_full'],
-                         ['bug', 'Flatten disc rips', 'P1: Critical', 'S1: Blocker', 'Found by: Claude'])
+                         ['bug', 'P1: Critical', 'S1: Blocker', 'Found by: Claude'])
 
     def test_an_epic_lists_its_stories_and_bugs(self):
         body = {i['id']: i for i in plan_with_bugs()}['Flatten disc rips']['body']
@@ -304,8 +300,8 @@ class ApplyTests(unittest.TestCase):
         github = FakeGitHub()
         gi.apply(plan(), github, log=quiet, sleep=quiet)
         self.assertEqual(github.imported, [1, 2, 3, 4, 5, 6, 7])
-        self.assertIn('Flatten disc rips', github.created_labels)
-        self.assertIn('In progress', github.created_labels)
+        self.assertNotIn('Flatten disc rips', github.created_labels)
+        self.assertNotIn('In progress', github.created_labels)
         self.assertIn('Found by: Claude', github.created_labels)
         self.assertNotIn('Found by: Automated tests', github.created_labels)
         self.assertNotIn('bug', github.created_labels)

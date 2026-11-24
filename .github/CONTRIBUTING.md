@@ -20,7 +20,8 @@ All work is tracked in [GitHub Issues](https://github.com/Michele-Kummer/Plex-Fi
 - **Epics** group the work by area of the tool. Every user story and bug is a sub-issue of its epic, and each bug names the user story it affects. When the last of them is closed, a GitHub workflow closes the epic.
 - **Titles** start with the area, such as `Flatten:`, `Guide:` or `Movies:`.
 - **Types:** stories have the **Feature** type and bugs the **Bug** type.
-- **Labels** give the epic, the priority (`P1: Critical` to `P4: Low`), a bug's severity (`S1: Blocker` to `S4: Trivial`), who found a bug (`Found by: …`), and `In progress` while someone is working on it.
+- **Labels** give the priority (`P1: Critical` to `P4: Low`), a bug's severity (`S1: Blocker` to `S4: Trivial`) and who found a bug (`Found by: …`). Epics have the `epic` label.
+- **Status** (Todo, In Progress, Done) is kept on the project board. Closing an issue moves it to Done.
 - The requirements were first gathered in [docs/user-stories-and-bugs.md](../docs/user-stories-and-bugs.md). It is kept as a record, and new work goes into issues.
 
 ## Set up

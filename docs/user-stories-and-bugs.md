@@ -359,7 +359,7 @@ As a maintainer, I want every epic, user story and bug in GitHub Issues with the
 - `tools/import_github_issues.py` takes the order, dates and links from `docs/github-import-order.md`, a local plan that is not pushed, and the text of each issue from this file. It uses GitHub's Issue Import API, so each issue opens on the date it was built or found and closes at the time of the commit that built or fixed it.
 - Epics come first, then stories and bugs mixed by date. Titles start with the issue's area (`Flatten:`, `Guide:`, `Movies:`) and leave out the US and BUG numbers, which go in each issue's footer ("where it is US-07"). US and BUG numbers in the text link to their issues.
 - Stories have the **Feature** issue type and bugs the **Bug** type.
-- Labels: `epic`, `user story` or `bug`; the epic's name; `P1: Critical` to `P4: Low`; `S1: Blocker` to `S4: Trivial` on bugs; `Found by: Michele Kummer`, `Found by: Claude` or `Found by: To confirm` on bugs; and `In progress` on Partly done stories.
+- Labels: `epic`, `user story` or `bug`; `P1: Critical` to `P4: Low`; `S1: Blocker` to `S4: Trivial` on bugs; and `Found by: Michele Kummer`, `Found by: Claude` or `Found by: To confirm` on bugs. Epics are found through sub-issues, and progress through the project board's Status, so there are no epic-name or `In progress` labels.
 - Each story and each bug is a sub-issue of its epic. A bug starts with the epic and the user story it affects.
 - Every issue is on the project board, with its status, priority and severity.
 - **New issue** offers a **User story** form and a **Bug** form in `.github/ISSUE_TEMPLATE/`, in the same layout.

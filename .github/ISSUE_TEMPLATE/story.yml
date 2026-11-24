@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Give it a short title that names what the person can do, such as `Read the guide from a TVDB export`.
-        After you create it, add its epic's label and a priority label (`P1: Critical` to `P4: Low`), and add it to its epic as a sub-issue.
+        After you create it, add a priority label (`P1: Critical` to `P4: Low`), and add it to its epic as a sub-issue.
   - type: dropdown
     id: epic
     attributes:

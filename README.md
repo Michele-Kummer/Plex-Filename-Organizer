@@ -367,7 +367,7 @@ Requirements and bugs are tracked in [GitHub Issues](https://github.com/Michele-
 
 - Each epic has its user stories and bugs as sub-issues, and each bug names the story it affects. An epic closes by itself once all of them are closed.
 - Titles start with the area, such as `Flatten:` or `Movies:`. Stories have the **Feature** issue type and bugs the **Bug** type, so the type filters work.
-- Labels give the epic, the priority (`P1: Critical` to `P4: Low`), a bug's severity (`S1: Blocker` to `S4: Trivial`) and who found it.
+- Labels give the priority (`P1: Critical` to `P4: Low`), a bug's severity (`S1: Blocker` to `S4: Trivial`) and who found it. Status is kept on the project board.
 - New issues use the **User story**, **Bug** and **Task** forms, which keep the same layout.
 
 [docs/user-stories-and-bugs.md](docs/user-stories-and-bugs.md) is the record of how they were first gathered. `py tools/import_github_issues.py` created each one in GitHub with the dates it really opened and closed. It previews first, and creates issues only with `--apply`.

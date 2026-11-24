@@ -34,7 +34,6 @@ IMPORT_ACCEPT = 'application/vnd.github.golden-comet-preview+json'
 
 PRIORITY = {'P1': 'P1: Critical', 'P2': 'P2: High', 'P3': 'P3: Medium', 'P4': 'P4: Low'}
 SEVERITY = {'S1': 'S1: Blocker', 'S2': 'S2: Major', 'S3': 'S3: Minor', 'S4': 'S4: Trivial'}
-IN_PROGRESS = 'In progress'
 ISSUE_TYPES = {'story': 'Feature', 'bug': 'Bug'}   # GitHub issue types, so the type filters work
 FOUND_BY = ('Michele Kummer', 'Claude', 'Automated tests', 'To confirm')
 
@@ -50,22 +49,17 @@ EPIC_SHORT_NAMES = {
     'Maintenance': 'Maintenance',
 }
 
-# Labels the script creates when they are missing: name -> (color, description)
-LABEL_COLORS = ['1D76DB', '5319E7', '0E8A16', 'C2E0C6', 'BFD4F2', 'D4C5F9', 'FEF2C0', 'F9D0C4']
+# Labels the script creates when they are missing: name -> (color, description).
+# Epics are found through sub-issues and progress through the board's Status, so there are
+# no epic-name or In progress labels.
 BASE_LABELS = {
     'epic': ('8250DF', 'High-level initiative or feature set broken down into user stories'),
     'user story': ('0969DA', "End-user requirement written from the user's perspective"),
     'bug': ('D73A4A', 'Defect, error, or unexpected behavior'),
-    IN_PROGRESS: ('0E8A16', 'Someone is working on this now'),
     **{name: ('EDEDED', '') for name in PRIORITY.values()},
     **{name: ('EDEDED', '') for name in SEVERITY.values()},
     **{f'Found by: {who}': ('C5DEF5', f'Bug found by {who}') for who in FOUND_BY},
 }
-
-
-def label_name(epic):
-    """An epic's label. GitHub does not allow commas in label names."""
-    return epic.replace(',', '')
 
 
 class PlanError(Exception):
@@ -262,15 +256,11 @@ def build_body(item, epics, sections, numbers, epic_numbers, repo, titles=None, 
 
 def labels_for(item):
     labels = {'epic': ['epic'], 'story': ['user story'], 'bug': ['bug']}[item['kind']]
-    if item.get('epic'):
-        labels.append(label_name(item['epic']))
     for code in item['labels']:
         table = PRIORITY if code.startswith('P') else SEVERITY
         if code not in table:
             raise PlanError(f'Unknown label "{code}" on {item["title"]}')
         labels.append(table[code])
-    if IN_PROGRESS.lower() in item['state'].lower():
-        labels.append(IN_PROGRESS)
     if item['kind'] == 'bug':
         labels.append(found_by_label(item.get('found_by')))
     return labels
@@ -444,12 +434,8 @@ class GitHub:
 
 
 def wanted_labels(items):
-    wanted = dict(BASE_LABELS)
-    epic_names = [i['epic'] for i in items if i['kind'] == 'epic']
-    for n, name in enumerate(epic_names):
-        wanted[label_name(name)] = (LABEL_COLORS[n % len(LABEL_COLORS)], f'Epic: {name}')
     used = {label for i in items for label in i['labels_full']}
-    return {name: value for name, value in wanted.items() if name in used}
+    return {name: value for name, value in BASE_LABELS.items() if name in used}
 
 
 def check_existing(items, existing):
